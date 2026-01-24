@@ -1,4 +1,12 @@
 Component({
+  properties: {
+    // 是否在 attached 时自动触发 exchange 事件
+    autoTrigger: {
+      type: Boolean,
+      value: false
+    }
+  },
+  
   data: {
     dateVisible: false,
     dateText: '请选择币种',
@@ -39,11 +47,13 @@ Component({
       this.setData({
         dateText: `${this.data.dateValue[0]} → ${this.data.dateValue[1]}`
       });
-      // 触发初始汇率查询事件
-      this.triggerEvent("exchange", { 
-        from_code: this.data.dateValue[0], 
-        to_code: this.data.dateValue[1] 
-      });
+      // 只有在 autoTrigger 为 true 时才自动触发初始汇率查询事件
+      if (this.properties.autoTrigger) {
+        this.triggerEvent("exchange", { 
+          from_code: this.data.dateValue[0], 
+          to_code: this.data.dateValue[1] 
+        });
+      }
     }
   },
   

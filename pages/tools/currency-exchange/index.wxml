@@ -7,9 +7,14 @@
   </view>
 
   <!-- 结果展示区域 -->
-  <view class="result-section" wx:if="{{resultData}}">
+  <view class="result-section">
+    <!-- 加载状态 -->
+    <view class="loading-container" wx:if="{{loading}}">
+      <t-loading theme="dots" size="40rpx" text="加载中..." />
+    </view>
+    
     <!-- 顶部蓝色卡片 -->
-    <view class="result-card-blue">
+    <view class="result-card-blue" wx:if="{{resultData}}">
       <view class="result-card-title">{{resultData.titleText}}</view>
       <view class="result-card-amount">{{resultData.formattedExchange}}</view>
       <view class="result-card-sub">
@@ -27,8 +32,6 @@
       </view>
     </view>
   </view>
-
-  <t-loading wx:if="{{loading}}" theme="dots" size="40rpx" text="加载中..." />
 
   <view class="form-section">
     <text class="title">金额转换：</text>

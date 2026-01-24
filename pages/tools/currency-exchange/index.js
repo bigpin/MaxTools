@@ -69,21 +69,37 @@ Page({
             maxDate: maxDate
         });
         
-        // 恢复上次保存的选项
+        // 恢复上次保存的选项（在 area 组件初始化之前）
         this.restoreLastOptions();
-        
-        // 先尝试从缓存加载并显示，然后自动查询最新汇率
-        this.loadAndDisplayExchangeRate();
     },
 
     onReady() {
         // 同步币种选择组件的显示为当前 fromCode/toCode
         const areaComponent = this.selectComponent('#exchangeSetting');
-        if (areaComponent && this.data.fromCode && this.data.toCode) {
+        if (areaComponent) {
+            // 如果已经恢复了选项，使用恢复的值；否则使用默认值
+            const fromCode = this.data.fromCode || 'USD';
+            const toCode = this.data.toCode || 'CNY';
+            
+            // 先设置组件的数据，但不触发事件
             areaComponent.setData({
-                dateValue: [this.data.fromCode, this.data.toCode],
-                dateText: `${this.data.fromCode} → ${this.data.toCode}`
+                dateValue: [fromCode, toCode],
+                dateText: `${fromCode} → ${toCode}`
             });
+            
+            // 确保数据同步
+            this.setData({
+                fromCode: fromCode,
+                toCode: toCode
+            });
+            
+            // 在组件同步后，加载并显示汇率（不通过 exchange 事件，直接调用）
+            this.loadAndDisplayExchangeRate();
+        } else {
+            // 如果组件还没准备好，延迟加载
+            setTimeout(() => {
+                this.loadAndDisplayExchangeRate();
+            }, 100);
         }
     },
 
@@ -117,38 +133,21 @@ Page({
                 const expireTime = 7 * 24 * 60 * 60 * 1000; // 7天
                 const now = Date.now();
                 if (now - savedOptions.timestamp < expireTime) {
-                    // 恢复选项
+                    console.log('恢复保存的选项:', savedOptions);
+                    // 恢复选项（不更新 area 组件，因为可能还没初始化，在 onReady 中处理）
                     this.setData({
-                        fromCode: savedOptions.fromCode || this.data.fromCode,
-                        toCode: savedOptions.toCode || this.data.toCode,
+                        fromCode: savedOptions.fromCode || 'USD',
+                        toCode: savedOptions.toCode || 'CNY',
                         amount: savedOptions.amount || '',
                         dateRangeType: savedOptions.dateRangeType || 'latest'
                     });
-
-                    // 更新 area 组件的显示
-                    const areaComponent = this.selectComponent('#exchangeSetting');
-                    if (areaComponent && savedOptions.fromCode && savedOptions.toCode) {
-                        areaComponent.setData({
-                            dateValue: [savedOptions.fromCode, savedOptions.toCode],
-                            dateText: `${savedOptions.fromCode} → ${savedOptions.toCode}`
-                        });
-                    }
-
-                    // 如果恢复的金额不为空，需要重新计算转换金额
-                    if (savedOptions.amount && this.data.resultData) {
-                        const amount = parseFloat(savedOptions.amount);
-                        if (!isNaN(amount)) {
-                            const rate = parseFloat(this.data.resultData.exchangeRate);
-                            const convertedAmount = (amount * rate).toFixed(2);
-                            this.setData({
-                                convertedAmount: convertedAmount
-                            });
-                        }
-                    }
                 } else {
                     // 过期了，清除
+                    console.log('保存的选项已过期，清除');
                     wx.removeStorageSync('currency_exchange_options');
                 }
+            } else {
+                console.log('没有保存的选项，使用默认值');
             }
         } catch (e) {
             console.error('恢复选项失败:', e);
@@ -255,35 +254,47 @@ Page({
             resultData: null,
             convertedAmount: '',
             chartData: [],
+            selectedHistoryRate: null,
+            selectedHistoryDate: null,
+            resultText: '',
             loading: true
         });
 
         // 保存选项
         this.saveCurrentOptions();
 
-        // 自动查询最新汇率
-        if (this.data.dateRangeType === 'latest' || !this.data.dateRangeType) {
-            await this.fetchExchangeRate(from_code, to_code);
-        } else {
-            // 如果有选择历史日期范围，重新获取历史数据
-            const today = new Date();
-            let startDate = '';
-            if (this.data.dateRangeType === '7d') {
-                const date = new Date(today);
-                date.setDate(date.getDate() - 7);
-                startDate = date.toISOString().split('T')[0];
-            } else if (this.data.dateRangeType === '30d') {
-                const date = new Date(today);
-                date.setDate(date.getDate() - 30);
-                startDate = date.toISOString().split('T')[0];
-            } else if (this.data.dateRangeType === '90d') {
-                const date = new Date(today);
-                date.setDate(date.getDate() - 90);
-                startDate = date.toISOString().split('T')[0];
+        try {
+            // 自动查询最新汇率
+            if (this.data.dateRangeType === 'latest' || !this.data.dateRangeType) {
+                await this.fetchExchangeRate(from_code, to_code);
+            } else {
+                // 如果有选择历史日期范围，重新获取历史数据
+                const today = new Date();
+                let startDate = '';
+                if (this.data.dateRangeType === '7d') {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - 7);
+                    startDate = date.toISOString().split('T')[0];
+                } else if (this.data.dateRangeType === '30d') {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - 30);
+                    startDate = date.toISOString().split('T')[0];
+                } else if (this.data.dateRangeType === '90d') {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - 90);
+                    startDate = date.toISOString().split('T')[0];
+                }
+                if (startDate) {
+                    await this.fetchHistoricalRates(from_code, to_code, startDate, today.toISOString().split('T')[0]);
+                } else {
+                    // 如果没有有效的日期范围，关闭loading
+                    this.setData({ loading: false });
+                }
             }
-            if (startDate) {
-                await this.fetchHistoricalRates(from_code, to_code, startDate, today.toISOString().split('T')[0]);
-            }
+        } catch (error) {
+            console.error('exchangeChanged 错误:', error);
+            // 确保在出错时也关闭loading
+            this.setData({ loading: false });
         }
     },
 
@@ -293,7 +304,10 @@ Page({
         const queryDate = date || this.data.queryDate;
 
         try {
-            this.setData({ loading: true });
+            // 如果loading已经是true（从exchangeChanged设置），就不重复设置
+            if (!this.data.loading) {
+                this.setData({ loading: true });
+            }
             const exchangeData = await this.getExchangeRate(from_code, to_code, key, queryDate);
             const displayText = this.formatExchangeText(exchangeData, from_code, to_code);
             
@@ -304,10 +318,24 @@ Page({
                 convertedAmount = (amount * exchangeData.rate).toFixed(2);
             }
             
+            // 如果有输入金额，重新计算转换金额
+            let finalConvertedAmount = convertedAmount;
+            if (this.data.amount && !isNaN(parseFloat(this.data.amount))) {
+                const amount = parseFloat(this.data.amount);
+                finalConvertedAmount = (amount * exchangeData.rate).toFixed(2);
+            }
+            
+            // 格式化汇率和日期用于趋势图右侧显示
+            const rateStr = parseFloat(exchangeData.rate).toFixed(6);
+            const dateStr = exchangeData.date || new Date().toISOString().split('T')[0];
+            
             this.setData({
                 resultText: displayText,
-                convertedAmount: convertedAmount,
+                convertedAmount: finalConvertedAmount,
                 chartData: [], // 单日查询不显示图表
+                // 设置当前汇率用于显示（如果有历史图表，会显示在右侧）
+                selectedHistoryRate: rateStr,
+                selectedHistoryDate: dateStr,
                 loading: false
             });
         } catch (error) {
@@ -656,6 +684,8 @@ Page({
                 // 缓存24小时
                 if ((now - cacheTime) < 24 * 60 * 60 * 1000) {
                     this.processHistoricalData(storedData.data, from_code, to_code);
+                    // 关闭loading
+                    this.setData({ loading: false });
                     return;
                 }
             }
@@ -663,7 +693,10 @@ Page({
             console.error('读取历史数据缓存失败:', e);
         }
         
-        this.setData({ loading: true });
+        // 如果loading已经是true（从exchangeChanged设置），就不重复设置
+        if (!this.data.loading) {
+            this.setData({ loading: true });
+        }
         try {
             const url = `https://api.frankfurter.app/${startDate}..${endDate}?from=${from_code}&to=${to_code}`;
             
@@ -743,9 +776,25 @@ Page({
             };
             
             this.formatExchangeText(exchangeData, from_code, to_code);
+            
+            // 计算转换金额（如果有输入金额）
+            let convertedAmount = '';
+            if (this.data.amount && !isNaN(parseFloat(this.data.amount))) {
+                const amount = parseFloat(this.data.amount);
+                convertedAmount = (amount * latest.rate).toFixed(2);
+            }
+            
+            // 格式化最新汇率显示
+            const rateStr = parseFloat(latest.rate).toFixed(6);
+            const dateStr = latest.date;
+            
             this.setData({
                 chartData: chartData,
-                resultText: `历史汇率数据（${dates.length}天）`
+                resultText: `历史汇率数据（${dates.length}天）`,
+                convertedAmount: convertedAmount,
+                // 默认显示最新汇率
+                selectedHistoryRate: rateStr,
+                selectedHistoryDate: dateStr
             });
             
             // 使用 ECharts 绘制图表
