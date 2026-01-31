@@ -53,7 +53,7 @@ Page({
     // UI状态
     expandedCards: {}, // 展开的卡片ID集合（股票详情）
     expandedSignals: {}, // 展开的信号列表（默认全部折叠）
-    expandedDateGroups: {}, // 展开的日期分组（默认全部展开）
+    expandedDateGroups: {}, // 展开的日期分组（最上面默认只展开最近一天）
     expandedOtherDates: {}, // 展开的其他日期（默认全部收起）
     loadingOtherDates: {}, // 正在加载的其他日期
     showRules: false, // 是否显示规则说明（默认收起）
@@ -86,75 +86,46 @@ Page({
 
   /**
    * 从云数据库加载信号数据
-   * 第一步：从stock_summary获取最近一天的股票列表
-   * 第二步：使用report_id加载signal_event补充详细信息
+   * 第一步：先获取最近一天的日期
+   * 第二步：按该日期查询 stock_summary 得到股票列表
+   * 第三步：按 report_id 查询 signal_event 补全信号
+   * 其他日期列表：从数据库分页拉取全部 summary，在客户端按日期汇总股票数（不加条数限制）
    */
   async loadSignals() {
     this.setData({ loading: true });
     
     try {
-      // 第一步：查询最近一天的stock_summary数据
-      const summaryRes = await db.collection('stock_signals')
-        .where({
-          doc_type: 'stock_summary'
-        })
+      // 第一步：只取最近一天的日期
+      const latestRes = await db.collection('stock_signals')
+        .where({ doc_type: 'stock_summary' })
         .orderBy('report_date', 'desc')
-        .limit(1000) // 限制数量，避免查询过多
+        .limit(1)
         .get();
       
-      const summaries = summaryRes.data || [];
-      console.log('总股票汇总数:', summaries.length);
-      
-      if (summaries.length === 0) {
+      const latestRecord = (latestRes.data && latestRes.data[0]) || null;
+      if (!latestRecord) {
         this.setData({
           currentPageData: [],
           totalSignals: 0,
+          otherDatesData: [],
           loading: false
         });
         return;
       }
       
-      // 获取最近的日期（第一条数据的日期）
-      const latestDate = summaries[0].report_date || summaries[0].signal_date;
+      const latestDate = latestRecord.report_date || latestRecord.signal_date;
       console.log('最近日期:', latestDate);
       
-      // 按日期分组所有汇总数据
-      const dateGrouped = {};
-      summaries.forEach(summary => {
-        const date = summary.report_date || summary.signal_date;
-        if (!date) return;
-        
-        if (!dateGrouped[date]) {
-          dateGrouped[date] = [];
-        }
-        dateGrouped[date].push(summary);
-      });
+      // 第二步：按最近一天日期查询该日所有 stock_summary
+      const summaryRes = await db.collection('stock_signals')
+        .where({
+          doc_type: 'stock_summary',
+          report_date: latestDate
+        })
+        .get();
       
-      // 获取所有日期列表（按日期倒序）
-      const allDates = Object.keys(dateGrouped).sort((a, b) => b.localeCompare(a));
-      console.log('所有日期:', allDates);
-      
-      // 筛选出最近一天的股票
-      const latestSummaries = dateGrouped[latestDate] || [];
+      const latestSummaries = summaryRes.data || [];
       console.log('最近一天的股票数:', latestSummaries.length);
-      
-      // 构建其他日期的汇总数据（只包含日期和股票数量）
-      const otherDatesData = allDates
-        .filter(date => date !== latestDate)
-        .map(date => {
-          // 统计该日期有多少只不同的股票
-          const stockSet = new Set();
-          dateGrouped[date].forEach(s => {
-            if (s.stock_code) {
-              stockSet.add(s.stock_code);
-            }
-          });
-          return {
-            date: date,
-            stockCount: stockSet.size,
-            summaries: dateGrouped[date] // 保存汇总数据，展开时使用
-          };
-        });
       
       // 按股票代码分组处理（同一天同一只股票只保留一条）
       const stockMap = {};
@@ -194,14 +165,14 @@ Page({
         console.log('sh601231的report_id:', sh601231Stock.report_id);
       }
       
-      // 初始化日期分组展开状态
+      // 最上面只展开最近一天
       const expandedDateGroups = { [latestDate]: true };
       
       // 初始化信号列表展开状态（默认全部折叠）
       const expandedSignals = {};
       
-      // 第二步：使用report_id查询对应的signal_event数据
-      // 改为对每个report_id单独查询，避免in查询的限制
+      // 第三步：使用 report_id 查询对应的 signal_event 数据
+      // 对每个 report_id 单独查询，避免 in 查询的限制
       if (reportIds.length > 0) {
         try {
           const allSignals = [];
@@ -360,6 +331,50 @@ Page({
         date: latestDate,
         stocks: stocks
       }];
+      
+      // 其他日期列表：最多展示 10 天，分页拉取后按日期、股票数量汇总并截断
+      const OTHER_DATES_MAX = 10;
+      let otherDatesData = [];
+      try {
+        const listDateGrouped = {};
+        let skip = 0;
+        const batchSize = 20; // 小程序端单次 get 默认最多 20 条
+        const maxRounds = 100; // 最多 100 轮 × 20 = 2000 条，足够覆盖约 10 天
+        let rounds = 0;
+        while (rounds < maxRounds) {
+          const listRes = await db.collection('stock_signals')
+            .where({ doc_type: 'stock_summary' })
+            .orderBy('report_date', 'desc')
+            .skip(skip)
+            .limit(batchSize)
+            .get();
+          const batch = listRes.data || [];
+          if (batch.length === 0) break;
+          batch.forEach(s => {
+            const date = s.report_date || s.signal_date;
+            if (!date) return;
+            if (!listDateGrouped[date]) listDateGrouped[date] = [];
+            listDateGrouped[date].push(s);
+          });
+          skip += batch.length;
+          rounds++;
+          if (batch.length < batchSize) break;
+        }
+        const listDates = Object.keys(listDateGrouped).sort((a, b) => b.localeCompare(a));
+        otherDatesData = listDates
+          .filter(date => date !== latestDate)
+          .map(date => {
+            const stockSet = new Set();
+            listDateGrouped[date].forEach(s => {
+              if (s.stock_code) stockSet.add(s.stock_code);
+            });
+            return { date, stockCount: stockSet.size };
+          })
+          .slice(0, OTHER_DATES_MAX);
+        console.log('其他日期列表: 共拉取', skip, '条 summary，展示', otherDatesData.length, '天');
+      } catch (err) {
+        console.warn('其他日期列表查询失败:', err);
+      }
       
       // 初始化其他日期的展开状态（默认全部收起）
       const expandedOtherDates = {};
@@ -706,18 +721,18 @@ Page({
   },
 
   /**
-   * 加载指定日期的详细信息
+   * 加载指定日期的详细信息（按 date 从 DB 拉取 stock_summary 与 signal_event，不依赖 otherDatesData.summaries）
    */
   async loadOtherDate(date) {
     try {
-      // 从otherDatesData中找到该日期的汇总数据
-      const dateData = this.data.otherDatesData.find(d => d.date === date);
-      if (!dateData || !dateData.summaries) {
-        console.warn(`未找到日期 ${date} 的汇总数据`);
-        return;
-      }
-      
-      const summaries = dateData.summaries;
+      // 按日期从 DB 查询该日的 stock_summary
+      const summaryRes = await db.collection('stock_signals')
+        .where({
+          doc_type: 'stock_summary',
+          report_date: date
+        })
+        .get();
+      const summaries = summaryRes.data || [];
       
       // 按股票代码分组处理（同一天同一只股票只保留一条）
       const stockMap = {};
