@@ -8,8 +8,8 @@
 
   <!-- 结果展示区域 -->
   <view class="result-section">
-    <!-- 加载状态 -->
-    <view class="loading-container" wx:if="{{loading}}">
+    <!-- 仅首次加载主汇率时显示大 loading，选择历史区间不占用此处 -->
+    <view class="loading-container" wx:if="{{loading && !resultData}}">
       <t-loading theme="dots" size="40rpx" text="加载中..." />
     </view>
     
@@ -89,8 +89,13 @@
       </view>
     </view>
 
+    <!-- 历史汇率图表区域：加载中显示小 loading -->
+    <view class="chart-loading-wrap" wx:if="{{chartLoading}}">
+      <t-loading theme="dots" size="32rpx" text="加载趋势..." />
+    </view>
+
     <!-- 汇率趋势图表（F2） -->
-    <view class="result-card-white" wx:if="{{chartData && chartData.length > 0}}">
+    <view class="result-card-white" wx:if="{{chartData && chartData.length > 0 && !chartLoading}}">
       <view class="result-card-header">
         <text class="result-detail-title">汇率趋势</text>
         <view class="history-info" wx:if="{{selectedHistoryRate}}">

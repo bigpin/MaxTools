@@ -35,6 +35,11 @@
         取消订阅
       </t-button>
     </view>
+    <!-- 订阅提示 -->
+    <view class="subscribe-tip">
+      <t-icon name="info-circle" size="24rpx" color="#ff9800" />
+      <text class="subscribe-tip-text">建议在授权弹窗中勾选「总是保持以上选择」以持续接收推送</text>
+    </view>
   </view>
 
   <!-- 信号规则说明 -->
@@ -128,8 +133,7 @@
 
   <!-- 加载状态 -->
   <view wx:if="{{loading}}" class="loading-container">
-    <t-icon name="loading" size="48rpx" color="#0052d9" />
-    <text class="loading-text">加载中...</text>
+    <t-loading theme="circular" size="48rpx" text="加载中..." />
   </view>
 
   <!-- 空状态 -->
@@ -372,11 +376,10 @@
           </view>
           <view class="other-date-header-right">
             <text class="other-date-toggle-text">{{expandedOtherDates[dateItem.date] ? '收起' : '展开'}}</text>
-            <t-icon 
+            <t-loading 
               wx:if="{{loadingOtherDates[dateItem.date]}}"
-              name="loading" 
-              size="24rpx" 
-              color="#d32f2f" 
+              theme="circular"
+              size="24rpx"
             />
           </view>
         </view>

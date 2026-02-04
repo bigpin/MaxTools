@@ -73,6 +73,12 @@ Page({
     this.checkSubscribeStatus();
   },
 
+  onShow() {
+    // 每次进入页面时，静默请求订阅授权（积累授权次数）
+    // 如果用户已勾选「总是保持以上选择-允许」，会静默获得授权
+    this.silentRequestSubscribe();
+  },
+
   onPullDownRefresh() {
     // 下拉刷新
     this.loadSignals().then(() => {
@@ -86,10 +92,8 @@ Page({
 
   /**
    * 从云数据库加载信号数据
-   * 第一步：先获取最近一天的日期
-   * 第二步：按该日期查询 stock_summary 得到股票列表
-   * 第三步：按 report_id 查询 signal_event 补全信号
-   * 其他日期列表：从数据库分页拉取全部 summary，在客户端按日期汇总股票数（不加条数限制）
+   * 首屏：先取最近一天日期 → 查该日 stock_summary → 查 signal_event → 立即渲染
+   * 其他日期：渲染后再在后台拉取，最多 5 天，完成后更新界面
    */
   async loadSignals() {
     this.setData({ loading: true });
@@ -152,18 +156,7 @@ Page({
       
       // 收集所有report_id
       const reportIds = stocks.map(s => s.report_id).filter(Boolean);
-      console.log('收集到的report_id:', {
-        total: reportIds.length,
-        sample: reportIds.slice(0, 5),
-        stocksWithoutReportId: stocks.filter(s => !s.report_id).length,
-        allReportIds: reportIds
-      });
-      
-      // 检查sh601231的report_id
-      const sh601231Stock = stocks.find(s => s.stock_code === 'sh601231');
-      if (sh601231Stock) {
-        console.log('sh601231的report_id:', sh601231Stock.report_id);
-      }
+      console.log('收集到的report_id数量:', reportIds.length);
       
       // 最上面只展开最近一天
       const expandedDateGroups = { [latestDate]: true };
@@ -171,104 +164,54 @@ Page({
       // 初始化信号列表展开状态（默认全部折叠）
       const expandedSignals = {};
       
-      // 第三步：使用 report_id 查询对应的 signal_event 数据
-      // 对每个 report_id 单独查询，避免 in 查询的限制
+      // 第三步：使用 report_id 并行查询对应的 signal_event 数据
       if (reportIds.length > 0) {
         try {
-          const allSignals = [];
+          // 并行查询所有 report_id 的信号数据（大幅提速）
+          const signalPromises = reportIds.map(reportId => 
+            db.collection('stock_signals')
+              .where({
+                doc_type: 'signal_event',
+                report_id: reportId
+              })
+              .limit(100)
+              .get()
+              .then(res => res.data || [])
+              .catch(err => {
+                console.warn(`查询 ${reportId} 失败:`, err);
+                return [];
+              })
+          );
           
-          // 对每个report_id单独查询，确保获取所有数据
-          for (let i = 0; i < reportIds.length; i++) {
-            const reportId = reportIds[i];
-            console.log(`查询第${i + 1}/${reportIds.length}个report_id: ${reportId}`);
-            
-            try {
-              const signalRes = await db.collection('stock_signals')
-                .where({
-                  doc_type: 'signal_event',
-                  report_id: reportId
-                })
-                .limit(1000) // 设置最大限制为1000条
-                .get();
-              
-              const signals = signalRes.data || [];
-              allSignals.push(...signals);
-              console.log(`  ${reportId} 查询到${signals.length}条信号数据`);
-              
-              // 如果返回的数据达到1000条，可能还有更多数据
-              if (signals.length >= 1000) {
-                console.warn(`  ${reportId} 查询达到1000条限制，可能还有更多数据未查询`);
-              }
-            } catch (error) {
-              console.error(`查询 ${reportId} 失败:`, error);
-            }
-          }
+          const signalResults = await Promise.all(signalPromises);
+          const allSignals = signalResults.flat();
           
-          // 在客户端排序（按report_date和signal_date倒序）
+          // 在客户端排序（按signal_date倒序）
           allSignals.sort((a, b) => {
-            const dateA = a.report_date || a.signal_date || '';
-            const dateB = b.report_date || b.signal_date || '';
-            if (dateB !== dateA) {
-              return dateB.localeCompare(dateA);
-            }
-            const signalDateA = a.signal_date || '';
-            const signalDateB = b.signal_date || '';
-            return signalDateB.localeCompare(signalDateA);
+            const dateA = a.signal_date || '';
+            const dateB = b.signal_date || '';
+            return dateB.localeCompare(dateA);
           });
           
-          console.log(`总共查询到${allSignals.length}条信号数据，使用的report_id数量: ${reportIds.length}`);
-          
-          // 统计每个report_id对应的信号数量
-          const signalCountByReportId = {};
-          allSignals.forEach(signal => {
-            const reportId = signal.report_id;
-            if (reportId) {
-              signalCountByReportId[reportId] = (signalCountByReportId[reportId] || 0) + 1;
-            }
-          });
-          console.log('每个report_id的信号数量统计:', signalCountByReportId);
-          
-          // 检查sh601231的report_id对应的信号
-          const sh601231ReportId = reportIds.find(id => id.includes('sh601231'));
-          if (sh601231ReportId) {
-            const sh601231Signals = allSignals.filter(s => s.report_id === sh601231ReportId);
-            console.log(`sh601231 (report_id: ${sh601231ReportId}) 查询到的信号:`, {
-              count: sh601231Signals.length,
-              signals: sh601231Signals.map(s => ({
-                _id: s._id,
-                signal_type: s.signal_type,
-                signal_label: s.signal_label,
-                signal_date: s.signal_date,
-                report_id: s.report_id
-              }))
-            });
-          }
+          console.log(`并行查询完成，共${allSignals.length}条信号数据`);
           
           // 将signal_event数据补充到对应的股票中
           allSignals.forEach(signal => {
             const reportId = signal.report_id;
             const stockCode = signal.stock_code;
+            if (!reportId || !stockCode) return;
             
-            if (!reportId || !stockCode) {
-              console.warn('信号数据缺少report_id或stock_code:', signal);
-              return;
-            }
-            
-            // 查找对应的股票
             const stock = stocks.find(s => 
               s.report_id === reportId && s.stock_code === stockCode
             );
             
             if (stock) {
-              // 添加信号到股票的信号列表
               const signalCN = this.getSignalTypeCN(signal.signal_type || signal.signal_label);
               stock.signals.push({
                 ...signal,
                 metricsArray: this.formatMetrics(signal.metrics),
                 signal_type_cn: signalCN
               });
-            } else {
-              console.warn(`未找到对应的股票: report_id=${reportId}, stock_code=${stockCode}`);
             }
           });
           
@@ -285,42 +228,6 @@ Page({
             }));
           });
           
-          // 统计每个股票匹配到的信号数量
-          const stockSignalCounts = {};
-          stocks.forEach(stock => {
-            stockSignalCounts[stock.stock_code] = {
-              report_id: stock.report_id,
-              signalCount: stock.signals.length,
-              expectedCount: stock.total_signal_count || 0
-            };
-          });
-          console.log('每个股票的信号数量统计:', stockSignalCounts);
-          
-          // 检查是否有股票信号数量不匹配
-          const mismatchedStocks = stocks.filter(stock => {
-            const expected = stock.total_signal_count || 0;
-            const actual = stock.signals.length;
-            return expected > 0 && actual !== expected;
-          });
-          if (mismatchedStocks.length > 0) {
-            console.warn('信号数量不匹配的股票:', mismatchedStocks.map(s => ({
-              stock_code: s.stock_code,
-              report_id: s.report_id,
-              expected: s.total_signal_count,
-              actual: s.signals.length
-            })));
-          }
-          
-          // 检查sh601231的数据
-          const sh601231Stock = stocks.find(s => s.stock_code === 'sh601231');
-          if (sh601231Stock) {
-            console.log(`sh601231的信号数:`, {
-              actual: sh601231Stock.signals.length,
-              expected: sh601231Stock.total_signal_count,
-              report_id: sh601231Stock.report_id
-            });
-          }
-          
         } catch (error) {
           console.error('加载信号详情失败:', error);
         }
@@ -332,57 +239,12 @@ Page({
         stocks: stocks
       }];
       
-      // 其他日期列表：最多展示 10 天，分页拉取后按日期、股票数量汇总并截断
-      const OTHER_DATES_MAX = 10;
-      let otherDatesData = [];
-      try {
-        const listDateGrouped = {};
-        let skip = 0;
-        const batchSize = 20; // 小程序端单次 get 默认最多 20 条
-        const maxRounds = 100; // 最多 100 轮 × 20 = 2000 条，足够覆盖约 10 天
-        let rounds = 0;
-        while (rounds < maxRounds) {
-          const listRes = await db.collection('stock_signals')
-            .where({ doc_type: 'stock_summary' })
-            .orderBy('report_date', 'desc')
-            .skip(skip)
-            .limit(batchSize)
-            .get();
-          const batch = listRes.data || [];
-          if (batch.length === 0) break;
-          batch.forEach(s => {
-            const date = s.report_date || s.signal_date;
-            if (!date) return;
-            if (!listDateGrouped[date]) listDateGrouped[date] = [];
-            listDateGrouped[date].push(s);
-          });
-          skip += batch.length;
-          rounds++;
-          if (batch.length < batchSize) break;
-        }
-        const listDates = Object.keys(listDateGrouped).sort((a, b) => b.localeCompare(a));
-        otherDatesData = listDates
-          .filter(date => date !== latestDate)
-          .map(date => {
-            const stockSet = new Set();
-            listDateGrouped[date].forEach(s => {
-              if (s.stock_code) stockSet.add(s.stock_code);
-            });
-            return { date, stockCount: stockSet.size };
-          })
-          .slice(0, OTHER_DATES_MAX);
-        console.log('其他日期列表: 共拉取', skip, '条 summary，展示', otherDatesData.length, '天');
-      } catch (err) {
-        console.warn('其他日期列表查询失败:', err);
-      }
-      
-      // 初始化其他日期的展开状态（默认全部收起）
+      // 先渲染最近一天数据，再在后台拉取其他日期
       const expandedOtherDates = {};
       const loadingOtherDates = {};
-      
       this.setData({
         currentPageData: currentPageData,
-        otherDatesData: otherDatesData,
+        otherDatesData: [],
         totalSignals: stocks.length,
         expandedDateGroups: expandedDateGroups,
         expandedSignals: expandedSignals,
@@ -390,12 +252,10 @@ Page({
         loadingOtherDates: loadingOtherDates,
         loading: false
       });
+      console.log('首屏渲染完成:', { date: latestDate, stocksCount: stocks.length });
       
-      console.log('数据加载完成:', {
-        date: latestDate,
-        stocksCount: stocks.length,
-        totalSignals: stocks.reduce((sum, s) => sum + s.signals.length, 0)
-      });
+      // 后台拉取其他日期列表（最多 5 天），完成后更新界面
+      this.loadOtherDatesList(latestDate);
       
     } catch (error) {
       console.error('加载信号数据失败:', error);
@@ -404,6 +264,54 @@ Page({
         icon: 'none'
       });
       this.setData({ loading: false });
+    }
+  },
+
+  /**
+   * 后台拉取「其他日期」列表（最多 5 天），完成后更新 otherDatesData
+   */
+  async loadOtherDatesList(latestDate) {
+    const OTHER_DATES_MAX = 5;
+    try {
+      const listDateGrouped = {};
+      let skip = 0;
+      const batchSize = 20;
+      const maxRounds = 50; // 约 1000 条，足够 5 天
+      let rounds = 0;
+      while (rounds < maxRounds) {
+        const listRes = await db.collection('stock_signals')
+          .where({ doc_type: 'stock_summary' })
+          .orderBy('report_date', 'desc')
+          .skip(skip)
+          .limit(batchSize)
+          .get();
+        const batch = listRes.data || [];
+        if (batch.length === 0) break;
+        batch.forEach(s => {
+          const date = s.report_date || s.signal_date;
+          if (!date) return;
+          if (!listDateGrouped[date]) listDateGrouped[date] = [];
+          listDateGrouped[date].push(s);
+        });
+        skip += batch.length;
+        rounds++;
+        if (batch.length < batchSize) break;
+      }
+      const listDates = Object.keys(listDateGrouped).sort((a, b) => b.localeCompare(a));
+      const otherDatesData = listDates
+        .filter(date => date !== latestDate)
+        .map(date => {
+          const stockSet = new Set();
+          listDateGrouped[date].forEach(s => {
+            if (s.stock_code) stockSet.add(s.stock_code);
+          });
+          return { date, stockCount: stockSet.size };
+        })
+        .slice(0, OTHER_DATES_MAX);
+      this.setData({ otherDatesData });
+      console.log('其他日期列表加载完成，展示', otherDatesData.length, '天');
+    } catch (err) {
+      console.warn('其他日期列表查询失败:', err);
     }
   },
 
@@ -878,6 +786,93 @@ Page({
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${date.getFullYear()}-${month}-${day}`;
+  },
+
+  /**
+   * 静默请求订阅授权（每次进入页面时调用）
+   * 用于积累订阅消息授权次数
+   * 如果用户已勾选「总是保持以上选择-允许」，会静默获得授权，不弹窗
+   */
+  async silentRequestSubscribe() {
+    const templateId = '60NMuOzka6yvGWttPKA-SWlYiB0o580AmdsQBM0SHjg';
+    
+    try {
+      const subscribeRes = await wx.requestSubscribeMessage({
+        tmplIds: [templateId]
+      });
+      
+      const status = subscribeRes[templateId];
+      console.log('静默订阅授权结果:', status);
+      
+      if (status === 'accept') {
+        // 授权成功，确保数据库中有订阅记录
+        await this.ensureSubscribeRecord();
+      } else if (status === 'ban') {
+        // 用户在设置中禁止了订阅消息，提示去设置中开启
+        // 只在用户已订阅但被禁止的情况下提示
+        if (this.data.isSubscribed) {
+          wx.showModal({
+            title: '订阅消息已被禁止',
+            content: '您已在小程序设置中关闭了订阅消息，无法接收推送。请点击下方按钮前往设置中开启。',
+            showCancel: true,
+            cancelText: '稍后',
+            confirmText: '去设置',
+            success: (res) => {
+              if (res.confirm) {
+                wx.openSetting();
+              }
+            }
+          });
+        }
+      }
+      // reject 状态（用户点击了拒绝）不做特殊处理，等待下次进入页面再次请求
+    } catch (error) {
+      // 静默失败不提示用户，只记录日志
+      console.log('静默订阅授权失败:', error.errMsg || error);
+    }
+  },
+
+  /**
+   * 确保数据库中有订阅记录（用于静默授权成功后）
+   */
+  async ensureSubscribeRecord() {
+    try {
+      const existingRes = await db.collection('stock_signals_subscriber').get();
+      const now = new Date();
+      
+      if (existingRes.data && existingRes.data.length > 0) {
+        // 已有记录，确保状态是 active
+        const subscriber = existingRes.data[0];
+        if (subscriber.status !== 'active') {
+          await db.collection('stock_signals_subscriber')
+            .doc(subscriber._id)
+            .update({
+              data: {
+                status: 'active',
+                lastError: null,
+                lastErrorTime: null
+              }
+            });
+          console.log('已将订阅状态更新为 active');
+        }
+        this.setData({ isSubscribed: true });
+      } else {
+        // 没有记录，创建新记录
+        await db.collection('stock_signals_subscriber').add({
+          data: {
+            subscribeTime: now,
+            status: 'active',
+            lastNotifiedDate: null,
+            lastError: null,
+            lastErrorTime: null
+          }
+        });
+        console.log('已创建新的订阅记录');
+        this.setData({ isSubscribed: true });
+      }
+    } catch (error) {
+      console.error('确保订阅记录失败:', error);
+    }
   },
 
   /**

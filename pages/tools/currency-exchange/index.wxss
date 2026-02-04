@@ -248,6 +248,18 @@
   color: #666666;
 }
 
+/* 历史汇率图表加载（小 loading，不占顶部大块） */
+.chart-loading-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 32rpx 20rpx;
+  margin-bottom: 16rpx;
+  background-color: #fff;
+  border-radius: 16rpx;
+  min-height: 120rpx;
+}
+
 /* 图表容器 */
 .chart-container {
   width: 100%;

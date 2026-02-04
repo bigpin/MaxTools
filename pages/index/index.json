@@ -3,11 +3,10 @@
   "navigationBarBackgroundColor": "#0052d9",
   "navigationBarTextStyle": "white",
   "backgroundColor": "#f5f5f5",
+  "initialRenderingCache": "static",
   "usingComponents": {
     "t-icon": "tdesign-miniprogram/icon/icon",
     "t-tag": "tdesign-miniprogram/tag/tag",
-    "t-search": "tdesign-miniprogram/search/search",
-    "t-tab-bar": "tdesign-miniprogram/tab-bar/tab-bar",
-    "t-tab-bar-item": "tdesign-miniprogram/tab-bar-item/tab-bar-item"
+    "t-search": "tdesign-miniprogram/search/search"
   }
 }

@@ -96,21 +96,108 @@ Page({
 
     onLoad() {
         console.log('首页加载');
-        console.log('工具列表:', this.data.tools);
-        console.log('工具数量:', this.data.tools.length);
-        this.loadFavorites();
-        this.loadRecentUses();
+        // 合并初始化数据，减少 setData 次数以加快首屏渲染
+        this.initPageData();
+    },
+
+    /**
+     * 初始化页面数据（合并多个 setData 为一次调用）
+     */
+    initPageData() {
+        const favorites = storage.getFavorites();
+        const recentUses = storage.getRecentUses();
+        
+        // 格式化最近使用
+        const formattedUses = recentUses.map(item => ({
+            ...item,
+            relativeTime: this.formatRelativeTime(item.useTime),
+            isFavorite: favorites.indexOf(item.toolId) > -1
+        }));
+        
+        // 计算过滤后的工具列表（带收藏状态）
+        const filteredTools = TOOLS.map(tool => ({
+            ...tool,
+            isFavorite: favorites.indexOf(tool.id) > -1
+        }));
+        
+        // 一次性设置所有数据
+        const payload = {
+            favorites,
+            recentUses: formattedUses,
+            filteredTools
+        };
+        
+        // 最近使用 ≥3 个时，默认展示最近使用 tab
+        if (formattedUses.length >= 3) {
+            payload.currentTab = 'recent';
+        }
+        
+        this.setData(payload);
+        console.log('首页初始化完成，工具数量:', TOOLS.length);
     },
 
     onShow() {
-        // 页面显示时刷新收藏和最近使用数据
-        this.loadFavorites();
-        if (this.data.currentTab === 'recent') {
-            this.loadRecentUses();
+        // 页面显示时刷新数据（合并 setData）
+        this.refreshPageData();
+    },
+
+    /**
+     * 刷新页面数据（合并多个 setData 为一次调用）
+     */
+    refreshPageData() {
+        const favorites = storage.getFavorites();
+        const currentTab = this.data.currentTab;
+        
+        // 构建更新数据
+        const payload = { favorites };
+        
+        // 更新工具列表的收藏状态
+        payload.filteredTools = this.filterToolsWithFavorites(
+            this.data.searchValue,
+            this.data.currentCategory,
+            favorites
+        );
+        
+        // 根据当前 Tab 加载对应数据
+        if (currentTab === 'recent') {
+            const recentUses = storage.getRecentUses();
+            payload.recentUses = recentUses.map(item => ({
+                ...item,
+                relativeTime: this.formatRelativeTime(item.useTime),
+                isFavorite: favorites.indexOf(item.toolId) > -1
+            }));
+        } else if (currentTab === 'my') {
+            payload.favoriteTools = TOOLS.filter(tool => favorites.indexOf(tool.id) > -1).map(tool => ({
+                ...tool,
+                isFavorite: true
+            }));
         }
-        if (this.data.currentTab === 'my') {
-            this.loadFavoriteTools();
+        
+        this.setData(payload);
+    },
+
+    /**
+     * 带收藏状态的工具过滤（内部方法，不调用 setData）
+     */
+    filterToolsWithFavorites(searchValue, category, favorites) {
+        let result = TOOLS;
+        
+        if (category) {
+            result = result.filter(tool => tool.category === category);
         }
+        
+        if (searchValue) {
+            const keyword = searchValue.toLowerCase();
+            result = result.filter(tool => 
+                tool.name.toLowerCase().includes(keyword) || 
+                tool.description.toLowerCase().includes(keyword)
+            );
+        }
+        
+        return result.map(tool => ({
+            ...tool,
+            isFavorite: favorites.indexOf(tool.id) > -1
+        }));
     },
 
     onShareAppMessage() {
@@ -148,30 +235,8 @@ Page({
 
     // 根据搜索词和分类筛选工具
     filterTools(searchValue, category) {
-        let result = TOOLS;
-        
-        // 按分类筛选
-        if (category) {
-            result = result.filter(tool => tool.category === category);
-        }
-        
-        // 按搜索词筛选
-        if (searchValue) {
-            const keyword = searchValue.toLowerCase();
-            result = result.filter(tool => 
-                tool.name.toLowerCase().includes(keyword) || 
-                tool.description.toLowerCase().includes(keyword)
-            );
-        }
-        
-        // 添加收藏状态
         const favorites = this.data.favorites || [];
-        result = result.map(tool => ({
-            ...tool,
-            isFavorite: favorites.indexOf(tool.id) > -1
-        }));
-        
-        return result;
+        return this.filterToolsWithFavorites(searchValue, category, favorites);
     },
 
     // 切换分类
@@ -320,31 +385,29 @@ Page({
         });
     },
 
-    // 加载收藏列表
+    // 加载收藏列表（合并 setData）
     loadFavorites() {
         const favorites = storage.getFavorites();
         this.setData({
-            favorites: favorites
-        });
-        // 更新工具列表的收藏状态
-        this.setData({
-            filteredTools: this.filterTools(this.data.searchValue, this.data.currentCategory)
+            favorites,
+            filteredTools: this.filterToolsWithFavorites(
+                this.data.searchValue,
+                this.data.currentCategory,
+                favorites
+            )
         });
     },
 
     // 加载最近使用记录
     loadRecentUses() {
-        const recentUses = storage.getRecentUses();
         const favorites = this.data.favorites || [];
-        // 格式化时间并添加收藏状态
+        const recentUses = storage.getRecentUses();
         const formattedUses = recentUses.map(item => ({
             ...item,
             relativeTime: this.formatRelativeTime(item.useTime),
             isFavorite: favorites.indexOf(item.toolId) > -1
         }));
-        this.setData({
-            recentUses: formattedUses
-        });
+        this.setData({ recentUses: formattedUses });
     },
 
     // 加载收藏的工具列表

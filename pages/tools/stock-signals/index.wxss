@@ -69,6 +69,22 @@ page {
   line-height: 1.4;
 }
 
+/* 订阅提示 */
+.subscribe-tip {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+  border-top: 1rpx solid rgba(255, 152, 0, 0.2);
+}
+
+.subscribe-tip-text {
+  font-size: 20rpx;
+  color: #f57c00;
+  line-height: 1.4;
+}
+
 /* 测试按钮（左下角悬浮） */
 .test-button-float {
   position: fixed;

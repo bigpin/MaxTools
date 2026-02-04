@@ -12,6 +12,7 @@ Page({
     data: {
         exchangeCache: {},
         loading: false,
+        chartLoading: false, // 仅历史汇率图表加载，不占用顶部大 loading
         fromCode: 'USD',
         toCode: 'CNY',
         resultText: '',
@@ -257,7 +258,8 @@ Page({
             selectedHistoryRate: null,
             selectedHistoryDate: null,
             resultText: '',
-            loading: true
+            loading: true,
+            chartLoading: false
         });
 
         // 保存选项
@@ -678,14 +680,13 @@ Page({
         const cacheKey = `historical_${from_code}_${to_code}_${startDate}_${endDate}`;
         try {
             const storedData = wx.getStorageSync(cacheKey);
-            if (storedData) {
+                if (storedData) {
                 const cacheTime = new Date(storedData.cacheTime);
                 const now = new Date();
                 // 缓存24小时
                 if ((now - cacheTime) < 24 * 60 * 60 * 1000) {
                     this.processHistoricalData(storedData.data, from_code, to_code);
-                    // 关闭loading
-                    this.setData({ loading: false });
+                    this.setData({ chartLoading: false });
                     return;
                 }
             }
@@ -693,10 +694,8 @@ Page({
             console.error('读取历史数据缓存失败:', e);
         }
         
-        // 如果loading已经是true（从exchangeChanged设置），就不重复设置
-        if (!this.data.loading) {
-            this.setData({ loading: true });
-        }
+        // 历史图表加载用 chartLoading，不占用顶部大 loading
+        this.setData({ chartLoading: true });
         try {
             const url = `https://api.frankfurter.app/${startDate}..${endDate}?from=${from_code}&to=${to_code}`;
             
@@ -746,7 +745,7 @@ Page({
                 icon: 'none'
             });
         } finally {
-            this.setData({ loading: false });
+            this.setData({ chartLoading: false });
         }
     },
 
