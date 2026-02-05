@@ -1,4 +1,4 @@
-// pages/tools/stock-signals/index.js
+// pages/tools/data-insights/index.js
 const db = wx.cloud.database();
 
 // 信号类型中文映射

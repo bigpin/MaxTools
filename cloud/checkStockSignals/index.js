@@ -50,7 +50,7 @@ async function sendNotification(openid, stockCount, reportDate, stockList) {
     const result = await cloud.openapi.subscribeMessage.send({
       touser: openid,
       templateId: templateId,
-      page: 'pages/tools/stock-signals/index',
+      page: 'pages/tools/data-insights/index',
       data: {
         thing15: { value: stockInfo || `发现${stockCount}只股票强力信号` }, // 产品名称：股票信息
         character_string16: { value: stockCodes }, // 代码：股票代码列表（character_string类型只能包含数字和字母）

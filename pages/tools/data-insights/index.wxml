@@ -1,8 +1,8 @@
 <view class="container">
-  <!-- 风险提示横幅 -->
+  <!-- 提示横幅 -->
   <view class="risk-warning">
     <t-icon name="error-circle" size="32rpx" color="#fff" />
-    <text class="warning-text">本工具展示信息仅供参考，不构成任何投资建议</text>
+    <text class="warning-text">本工具展示信息仅供参考，请结合实际情况分析</text>
   </view>
 
   <!-- 订阅按钮区域 -->
@@ -11,8 +11,8 @@
       <view class="subscribe-info">
         <t-icon name="notification" size="32rpx" color="#d32f2f" />
         <view class="subscribe-text-wrapper">
-          <text class="subscribe-title">股票信号订阅</text>
-          <text class="subscribe-desc">{{isSubscribed ? '已订阅，每日4-8点自动推送最新信号' : '订阅后每日自动推送最新股票信号'}}</text>
+          <text class="subscribe-title">数据洞察订阅</text>
+          <text class="subscribe-desc">{{isSubscribed ? '已订阅，每日自动推送最新洞察' : '订阅后每日自动推送最新数据洞察'}}</text>
         </view>
       </view>
       <t-button 
@@ -42,7 +42,7 @@
     </view>
   </view>
 
-  <!-- 信号规则说明 -->
+  <!-- 规则说明 -->
   <view class="rules-section">
     <view 
       class="rules-header"
@@ -50,7 +50,7 @@
     >
       <view class="rules-header-left">
         <t-icon name="info-circle" size="32rpx" color="#d32f2f" />
-        <text class="rules-title">信号规则说明</text>
+        <text class="rules-title">分析规则说明</text>
       </view>
       <t-icon 
         name="{{showRules ? 'chevron-up' : 'chevron-down'}}" 
@@ -62,49 +62,49 @@
     <view wx:if="{{showRules}}" class="rules-content">
       <view class="rules-section-item">
         <text class="rules-section-title">概述</text>
-        <text class="rules-text">系统基于技术指标分析，自动检测股票买入信号。信号检测分为两个阶段：</text>
-        <text class="rules-text">1. 历史信号统计：遍历历史数据，统计各信号类型的成功率和出现次数</text>
-        <text class="rules-text">2. 最近3天信号筛选：从最近3个交易日中筛选高胜率信号</text>
+        <text class="rules-text">系统基于多维指标分析，自动检测数据特征。分析分为两个阶段：</text>
+        <text class="rules-text">1. 历史统计：遍历历史数据，统计各特征类型的准确率和出现次数</text>
+        <text class="rules-text">2. 近期筛选：从最近数据中筛选高准确率特征</text>
       </view>
 
       <view class="rules-section-item">
         <text class="rules-section-title">前置条件</text>
-        <text class="rules-text">• 数据要求：至少需要16天的历史K线数据</text>
-        <text class="rules-text">• 输出条件：只有当最近3天出现6种以上不同信号类型时，才会输出报告</text>
+        <text class="rules-text">• 数据要求：至少需要16天的历史数据</text>
+        <text class="rules-text">• 输出条件：只有当最近3天出现6种以上不同特征类型时，才会输出报告</text>
       </view>
 
       <view class="rules-section-item">
-        <text class="rules-section-title">主要信号类型</text>
-        <text class="rules-text">• KDJ信号：KDJ超卖、KDJ金叉、KDJ底背离</text>
-        <text class="rules-text">• MACD信号：MACD金叉、MACD零轴上穿、MACD底背离</text>
-        <text class="rules-text">• RSI信号：RSI超卖、RSI金叉</text>
-        <text class="rules-text">• BOLL信号：BOLL下轨支撑、BOLL带宽扩张</text>
-        <text class="rules-text">• MA信号：MA5上穿MA20、MA20支撑</text>
-        <text class="rules-text">• DMI信号：DMI金叉、ADX强势</text>
-        <text class="rules-text">• CCI信号：CCI超卖、CCI零轴上穿</text>
-        <text class="rules-text">• ROC信号：ROC零轴上穿、ROC底背离</text>
+        <text class="rules-section-title">主要特征类型</text>
+        <text class="rules-text">• KDJ特征：超卖、金叉、底背离</text>
+        <text class="rules-text">• MACD特征：金叉、零轴上穿、底背离</text>
+        <text class="rules-text">• RSI特征：超卖、金叉</text>
+        <text class="rules-text">• BOLL特征：下轨支撑、带宽扩张</text>
+        <text class="rules-text">• MA特征：短期上穿长期、支撑</text>
+        <text class="rules-text">• DMI特征：金叉、ADX强势</text>
+        <text class="rules-text">• CCI特征：超卖、零轴上穿</text>
+        <text class="rules-text">• ROC特征：零轴上穿、底背离</text>
       </view>
 
       <view class="rules-section-item">
-        <text class="rules-section-title">成功率计算</text>
-        <text class="rules-text">• 成功定义：信号出现后，未来14天内最高涨幅达到5%以上</text>
-        <text class="rules-text">• 信号胜率：该信号类型历史成功率 = 成功次数 / 总出现次数 × 100</text>
-        <text class="rules-text">• 整体胜率：所有信号类型的综合成功率 = 总成功次数 / 总信号数 × 100</text>
+        <text class="rules-section-title">准确率计算</text>
+        <text class="rules-text">• 成功定义：特征出现后，未来14天内达到预期目标</text>
+        <text class="rules-text">• 特征准确率 = 成功次数 / 总出现次数 × 100</text>
+        <text class="rules-text">• 整体准确率 = 总成功次数 / 总特征数 × 100</text>
       </view>
 
       <view class="rules-section-item">
         <text class="rules-section-title">筛选规则</text>
         <text class="rules-text">同时满足以下条件：</text>
-        <text class="rules-text">1. 历史样本充足：该信号类型历史出现次数 > 8次</text>
-        <text class="rules-text">2. 信号胜率达标：该信号类型历史成功率 ≥ 60%</text>
-        <text class="rules-text">3. 整体胜率达标：所有信号类型的整体成功率 ≥ 50%</text>
-        <text class="rules-text">4. 时间范围：最近3个交易日（排除周末）</text>
+        <text class="rules-text">1. 历史样本充足：该特征类型历史出现次数 > 8次</text>
+        <text class="rules-text">2. 特征准确率达标：历史准确率 ≥ 60%</text>
+        <text class="rules-text">3. 整体准确率达标：综合准确率 ≥ 50%</text>
+        <text class="rules-text">4. 时间范围：最近3天</text>
       </view>
 
       <view class="rules-section-item">
         <text class="rules-section-title">输出规则</text>
-        <text class="rules-text">• 最近3天至少出现6种以上不同信号类型</text>
-        <text class="rules-text">• 满足筛选条件的信号才会被输出</text>
+        <text class="rules-text">• 最近3天至少出现6种以上不同特征类型</text>
+        <text class="rules-text">• 满足筛选条件的特征才会被输出</text>
       </view>
     </view>
   </view>
@@ -120,11 +120,11 @@
     <t-picker-item mode="date" min="{{minDate}}" max="{{maxDate}}" />
   </t-picker>
 
-  <!-- 信号类型选择器 -->
+  <!-- 特征类型选择器 -->
   <t-picker
     visible="{{signalTypePickerVisible}}"
     value="{{[signalTypeIndex]}}"
-    title="选择信号类型"
+    title="选择特征类型"
     bind:change="onSignalTypePickerConfirm"
     bind:cancel="onSignalTypePickerCancel"
   >
@@ -139,7 +139,7 @@
   <!-- 空状态 -->
   <view wx:elif="{{currentPageData.length === 0}}" class="empty-state">
     <t-icon name="file-search" size="120rpx" color="#ccc" />
-    <text class="empty-text">暂无信号数据</text>
+    <text class="empty-text">暂无数据</text>
     <text class="empty-desc">请调整筛选条件或稍后再试</text>
   </view>
 
@@ -160,7 +160,7 @@
           />
           <t-icon name="calendar" size="32rpx" color="#fff" />
           <text class="date-title">{{item.date}}</text>
-          <text class="date-count">({{item.stocks.length}}只股票)</text>
+          <text class="date-count">({{item.stocks.length}}条数据)</text>
         </view>
         <view class="date-header-right">
           <text class="date-toggle-text">{{expandedDateGroups[item.date] ? '收起' : '展开'}}</text>
@@ -192,7 +192,7 @@
               </view>
               <view class="summary-divider"></view>
               <view class="summary-item">
-                <text class="summary-label">信号数</text>
+                <text class="summary-label">特征数</text>
                 <text class="summary-value">{{stock.signals.length}}</text>
               </view>
             </view>
@@ -212,7 +212,7 @@
                   color="#666" 
                 />
                 <t-icon name="chart-line" size="24rpx" color="#666" />
-                <text class="signals-title-text">信号列表 ({{stock.signals.length}}个，{{stock.signalTypeStats ? stock.signalTypeStats.length : 0}}种类型)</text>
+                <text class="signals-title-text">特征列表 ({{stock.signals.length}}个，{{stock.signalTypeStats ? stock.signalTypeStats.length : 0}}种类型)</text>
               </view>
               <text class="signals-toggle-text">{{expandedSignals[stock.stock_code + '_' + item.date] ? '收起' : '展开'}}</text>
             </view>
@@ -259,7 +259,7 @@
               <view class="signal-item-content">
                 <view class="signal-metrics-grid">
                   <view class="metric-card">
-                    <text class="metric-label-small">信号胜率</text>
+                    <text class="metric-label-small">准确率</text>
                     <text class="metric-value-large" style="color: {{signal.signal_success_rate >= 70 ? '#00c853' : signal.signal_success_rate >= 60 ? '#ff6f00' : '#d32f2f'}}">{{signal.signal_success_rate || 0}}%</text>
                   </view>
                   <view class="metric-card">
@@ -307,7 +307,7 @@
               </view>
               <view class="detail-signal-content">
                 <view class="detail-section">
-                  <text class="detail-label">信号胜率：</text>
+                  <text class="detail-label">准确率：</text>
                   <text class="detail-value">{{signal.signal_success_rate || 0}}%</text>
                 </view>
                 <view class="detail-section">
@@ -372,7 +372,7 @@
             />
             <t-icon name="calendar" size="28rpx" color="#d32f2f" />
             <text class="other-date-title">{{dateItem.date}}</text>
-            <text class="other-date-count">({{dateItem.stockCount}}只股票)</text>
+            <text class="other-date-count">({{dateItem.stockCount}}条数据)</text>
           </view>
           <view class="other-date-header-right">
             <text class="other-date-toggle-text">{{expandedOtherDates[dateItem.date] ? '收起' : '展开'}}</text>
@@ -432,7 +432,7 @@
                     color="#666" 
                   />
                   <t-icon name="chart-line" size="24rpx" color="#666" />
-                  <text class="signals-title-text">信号列表 ({{stock.signals.length}}个，{{stock.signalTypeStats ? stock.signalTypeStats.length : 0}}种类型)</text>
+                  <text class="signals-title-text">特征列表 ({{stock.signals.length}}个，{{stock.signalTypeStats ? stock.signalTypeStats.length : 0}}种类型)</text>
                 </view>
                 <text class="signals-toggle-text">{{expandedSignals[stock.stock_code + '_' + dateItem.date] ? '收起' : '展开'}}</text>
               </view>
@@ -481,7 +481,7 @@
                   <view class="signal-item-content">
                     <view class="signal-metrics-grid">
                       <view class="metric-card">
-                        <text class="metric-label-small">信号胜率</text>
+                        <text class="metric-label-small">准确率</text>
                         <text class="metric-value-large" style="color: {{signal.signal_success_rate >= 70 ? '#00c853' : signal.signal_success_rate >= 60 ? '#ff6f00' : '#d32f2f'}}">{{signal.signal_success_rate || 0}}%</text>
                       </view>
                       <view class="metric-card">
@@ -529,7 +529,7 @@
                 </view>
                 <view class="detail-signal-content">
                   <view class="detail-section">
-                    <text class="detail-label">信号胜率：</text>
+                    <text class="detail-label">准确率：</text>
                     <text class="detail-value">{{signal.signal_success_rate || 0}}%</text>
                   </view>
                   <view class="detail-section">

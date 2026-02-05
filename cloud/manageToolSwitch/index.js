@@ -20,15 +20,15 @@ const db = cloud.database();
  *   - 'disable': 直接禁用工具
  *   - 'enable': 直接启用工具
  * 
- * @param {string} tool_id - 工具ID，如 'stock-signals'
+ * @param {string} tool_id - 工具ID，如 'data-insights'
  * @param {string} version - 版本号（仅 set_review 时需要）
  * 
  * 示例调用：
  *   1. 查看状态: { action: 'list' }
- *   2. 提交审核: { action: 'set_review', tool_id: 'stock-signals', version: '1.0.5' }
- *   3. 审核通过: { action: 'clear_review', tool_id: 'stock-signals' }
- *   4. 直接禁用: { action: 'disable', tool_id: 'stock-signals' }
- *   5. 直接启用: { action: 'enable', tool_id: 'stock-signals' }
+ *   2. 提交审核: { action: 'set_review', tool_id: 'data-insights', version: '1.0.5' }
+ *   3. 审核通过: { action: 'clear_review', tool_id: 'data-insights' }
+ *   4. 直接禁用: { action: 'disable', tool_id: 'data-insights' }
+ *   5. 直接启用: { action: 'enable', tool_id: 'data-insights' }
  */
 exports.main = async (event, context) => {
   const { action, tool_id, version } = event;
@@ -70,10 +70,10 @@ exports.main = async (event, context) => {
           error: '未知的 action，支持: list, set_review, clear_review, disable, enable',
           usage: {
             list: '查看所有开关状态',
-            set_review: '设置审核版本号 { action: "set_review", tool_id: "stock-signals", version: "1.0.5" }',
-            clear_review: '清除审核版本号 { action: "clear_review", tool_id: "stock-signals" }',
-            disable: '直接禁用 { action: "disable", tool_id: "stock-signals" }',
-            enable: '直接启用 { action: "enable", tool_id: "stock-signals" }'
+            set_review: '设置审核版本号 { action: "set_review", tool_id: "data-insights", version: "1.0.5" }',
+            clear_review: '清除审核版本号 { action: "clear_review", tool_id: "data-insights" }',
+            disable: '直接禁用 { action: "disable", tool_id: "data-insights" }',
+            enable: '直接启用 { action: "enable", tool_id: "data-insights" }'
           }
         };
     }

@@ -61,12 +61,12 @@ const TOOLS = [
         path: '/pages/tools/anniversary/index'
     },
     {
-        id: 'stock-signals',
-        name: '股票强力信号',
+        id: 'data-insights',
+        name: '数据洞察',
         icon: 'chart',
         category: 'finance',
-        description: '展示股票强力信号数据，按日期分组查看，支持筛选和详情展开',
-        path: '/pages/tools/stock-signals/index'
+        description: '多维数据分析与趋势洞察',
+        path: '/pages/tools/data-insights/index'
     }
 ];
 

@@ -72,17 +72,17 @@ const TOOLS = [
         path: '/pages/tools/anniversary/index'
     },
     {
-        id: 'stock-signals',
-        name: '股票强力信号',
+        id: 'data-insights',
+        name: '数据洞察',
         icon: 'chart',
         category: 'finance',
-        description: '展示股票强力信号数据，按日期分组查看，支持筛选和详情展开',
-        path: '/pages/tools/stock-signals/index'
+        description: '多维数据分析与趋势洞察',
+        path: '/pages/tools/data-insights/index'
     }
 ];
 
 // 需要开关控制的工具ID列表（审核敏感功能）
-const SWITCH_CONTROLLED_TOOLS = ['stock-signals'];
+const SWITCH_CONTROLLED_TOOLS = ['data-insights'];
 
 Page({
     data: {
@@ -112,8 +112,8 @@ Page({
     /**
      * 从云数据库加载工具开关配置
      * tools_switch 表结构:
-     *   - 方式1: { tool_id: 'stock-signals', enabled: true/false }
-     *   - 方式2: { tool_id: 'stock-signals', review_version: '1.0.5' } (审核中的版本号)
+     *   - 方式1: { tool_id: 'data-insights', enabled: true/false }
+     *   - 方式2: { tool_id: 'data-insights', review_version: '1.0.5' } (审核中的版本号)
      * 
      * 判断逻辑：
      *   1. 开发版/体验版：始终显示所有工具（方便测试）
@@ -137,11 +137,11 @@ Page({
             }
             
             // 开发版和体验版始终显示所有工具
-            if (envVersion === 'develop' || envVersion === 'trial') {
-                console.log('开发/体验版环境，显示所有工具');
-                this.data.disabledTools = [];
-                return;
-            }
+            // if (envVersion === 'develop' || envVersion === 'trial') {
+            //     console.log('开发/体验版环境，显示所有工具');
+            //     this.data.disabledTools = [];
+            //     return;
+            // }
             
             const res = await db.collection('tools_switch').get();
             const switches = res.data || [];

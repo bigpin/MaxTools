@@ -11,7 +11,7 @@
         "pages/tools/unit-converter/index",
         "pages/tools/anniversary/index",
         "pages/tools/anniversary/add",
-        "pages/tools/stock-signals/index",
+        "pages/tools/data-insights/index",
         "pages/detail/detail"
     ],
     "window": {
