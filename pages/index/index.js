@@ -3,6 +3,9 @@
 
 const storage = require('../../utils/storage');
 
+// 云数据库
+const db = wx.cloud.database();
+
 // 工具分类定义
 const TOOL_CATEGORIES = {
     FINANCE: 'finance',
@@ -78,6 +81,9 @@ const TOOLS = [
     }
 ];
 
+// 需要开关控制的工具ID列表（审核敏感功能）
+const SWITCH_CONTROLLED_TOOLS = ['stock-signals'];
+
 Page({
     data: {
         categories: ['finance', 'image', 'life'],
@@ -91,13 +97,81 @@ Page({
         favorites: [], // 收藏的工具ID列表
         recentUses: [], // 最近使用记录
         favoriteTools: [], // 收藏的工具列表（用于我的Tab）
-        activeColor: '#0052d9' // 当前激活颜色，根据分类动态变化
+        activeColor: '#0052d9', // 当前激活颜色，根据分类动态变化
+        disabledTools: [] // 被开关禁用的工具ID列表
     },
 
     onLoad() {
         console.log('首页加载');
-        // 合并初始化数据，减少 setData 次数以加快首屏渲染
-        this.initPageData();
+        // 先加载开关配置，再初始化页面数据
+        this.loadToolsSwitch().then(() => {
+            this.initPageData();
+        });
+    },
+
+    /**
+     * 从云数据库加载工具开关配置
+     * tools_switch 表结构:
+     *   - 方式1: { tool_id: 'stock-signals', enabled: true/false }
+     *   - 方式2: { tool_id: 'stock-signals', review_version: '1.0.5' } (审核中的版本号)
+     * 
+     * 判断逻辑：
+     *   1. 开发版/体验版：始终显示所有工具（方便测试）
+     *   2. 正式版：
+     *      - 如果 enabled === false，直接禁用
+     *      - 如果 review_version 存在且等于当前版本号，禁用（审核中）
+     *      - 其他情况显示
+     */
+    async loadToolsSwitch() {
+        try {
+            // 获取当前小程序版本号和环境
+            let currentVersion = '';
+            let envVersion = 'develop';
+            try {
+                const accountInfo = wx.getAccountInfoSync();
+                currentVersion = accountInfo.miniProgram.version || '';
+                envVersion = accountInfo.miniProgram.envVersion || 'develop';
+                console.log('小程序环境:', envVersion, '版本:', currentVersion || '(空)');
+            } catch (e) {
+                console.warn('获取版本号失败:', e);
+            }
+            
+            // 开发版和体验版始终显示所有工具
+            if (envVersion === 'develop' || envVersion === 'trial') {
+                console.log('开发/体验版环境，显示所有工具');
+                this.data.disabledTools = [];
+                return;
+            }
+            
+            const res = await db.collection('tools_switch').get();
+            const switches = res.data || [];
+            
+            // 找出被禁用的工具（仅正式版生效）
+            const disabledTools = switches
+                .filter(s => {
+                    if (!SWITCH_CONTROLLED_TOOLS.includes(s.tool_id)) return false;
+                    // 方式1: enabled 显式设为 false
+                    if (s.enabled === false) return true;
+                    // 方式2: 当前版本是审核版本
+                    if (s.review_version && s.review_version === currentVersion) return true;
+                    return false;
+                })
+                .map(s => s.tool_id);
+            
+            this.data.disabledTools = disabledTools;
+            console.log('工具开关加载完成，禁用的工具:', disabledTools);
+        } catch (error) {
+            console.warn('加载工具开关失败，默认显示所有工具:', error);
+            this.data.disabledTools = [];
+        }
+    },
+
+    /**
+     * 获取可用的工具列表（排除被禁用的工具）
+     */
+    getAvailableTools() {
+        const disabledTools = this.data.disabledTools || [];
+        return TOOLS.filter(tool => !disabledTools.includes(tool.id));
     },
 
     /**
@@ -106,16 +180,20 @@ Page({
     initPageData() {
         const favorites = storage.getFavorites();
         const recentUses = storage.getRecentUses();
+        const availableTools = this.getAvailableTools();
+        const disabledTools = this.data.disabledTools || [];
         
-        // 格式化最近使用
-        const formattedUses = recentUses.map(item => ({
-            ...item,
-            relativeTime: this.formatRelativeTime(item.useTime),
-            isFavorite: favorites.indexOf(item.toolId) > -1
-        }));
+        // 格式化最近使用（排除被禁用的工具）
+        const formattedUses = recentUses
+            .filter(item => !disabledTools.includes(item.toolId))
+            .map(item => ({
+                ...item,
+                relativeTime: this.formatRelativeTime(item.useTime),
+                isFavorite: favorites.indexOf(item.toolId) > -1
+            }));
         
         // 计算过滤后的工具列表（带收藏状态）
-        const filteredTools = TOOLS.map(tool => ({
+        const filteredTools = availableTools.map(tool => ({
             ...tool,
             isFavorite: favorites.indexOf(tool.id) > -1
         }));
@@ -124,7 +202,8 @@ Page({
         const payload = {
             favorites,
             recentUses: formattedUses,
-            filteredTools
+            filteredTools,
+            tools: availableTools
         };
         
         // 最近使用 ≥3 个时，默认展示最近使用 tab
@@ -133,7 +212,7 @@ Page({
         }
         
         this.setData(payload);
-        console.log('首页初始化完成，工具数量:', TOOLS.length);
+        console.log('首页初始化完成，可用工具数量:', availableTools.length);
     },
 
     onShow() {
@@ -167,7 +246,8 @@ Page({
                 isFavorite: favorites.indexOf(item.toolId) > -1
             }));
         } else if (currentTab === 'my') {
-            payload.favoriteTools = TOOLS.filter(tool => favorites.indexOf(tool.id) > -1).map(tool => ({
+            const availableTools = this.getAvailableTools();
+            payload.favoriteTools = availableTools.filter(tool => favorites.indexOf(tool.id) > -1).map(tool => ({
                 ...tool,
                 isFavorite: true
             }));
@@ -180,7 +260,7 @@ Page({
      * 带收藏状态的工具过滤（内部方法，不调用 setData）
      */
     filterToolsWithFavorites(searchValue, category, favorites) {
-        let result = TOOLS;
+        let result = this.getAvailableTools();
         
         if (category) {
             result = result.filter(tool => tool.category === category);
@@ -413,7 +493,8 @@ Page({
     // 加载收藏的工具列表
     loadFavoriteTools() {
         const favorites = storage.getFavorites();
-        const favoriteTools = TOOLS.filter(tool => favorites.indexOf(tool.id) > -1).map(tool => ({
+        const availableTools = this.getAvailableTools();
+        const favoriteTools = availableTools.filter(tool => favorites.indexOf(tool.id) > -1).map(tool => ({
             ...tool,
             isFavorite: true
         }));
