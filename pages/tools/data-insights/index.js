@@ -562,11 +562,21 @@ Page({
   },
 
   /**
-   * 切换规则说明展开/收起
+   * 打开规则说明文章
    */
-  toggleRules() {
-    this.setData({
-      showRules: !this.data.showRules
+  openRulesArticle() {
+    // 复制链接到剪贴板，提示用户在浏览器中打开
+    const url = 'https://mp.weixin.qq.com/s/vZ4Mg1Ll8_OX1Mgl1VCddA';
+    wx.setClipboardData({
+      data: url,
+      success: () => {
+        wx.showModal({
+          title: '链接已复制',
+          content: '公众号文章链接已复制到剪贴板，请在微信中长按粘贴打开',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+      }
     });
   },
 
