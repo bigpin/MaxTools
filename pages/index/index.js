@@ -84,6 +84,9 @@ const TOOLS = [
 // 需要开关控制的工具ID列表（审核敏感功能）
 const SWITCH_CONTROLLED_TOOLS = ['data-insights'];
 
+// 当前存在的工具 id 列表（用于过滤最近使用/收藏中的无效项）
+const VALID_TOOL_IDS = TOOLS.map(t => t.id);
+
 Page({
     data: {
         categories: ['finance', 'image', 'life'],
@@ -98,11 +101,23 @@ Page({
         recentUses: [], // 最近使用记录
         favoriteTools: [], // 收藏的工具列表（用于我的Tab）
         activeColor: '#0052d9', // 当前激活颜色，根据分类动态变化
-        disabledTools: [] // 被开关禁用的工具ID列表
+        disabledTools: [], // 被开关禁用的工具ID列表
+        versionLabel: '' // 版本号或环境（有版本显示版本，无版本显示环境如 开发版/体验版/正式版）
     },
 
     onLoad() {
         console.log('首页加载');
+        // 获取版本号或环境用于展示（正式版有版本号，开发/体验版显示环境）
+        try {
+            const accountInfo = wx.getAccountInfoSync();
+            const version = accountInfo.miniProgram.version || '';
+            const envVersion = accountInfo.miniProgram.envVersion || 'develop';
+            const envNames = { develop: '开发版', trial: '体验版', release: '正式版' };
+            const versionLabel = version || envNames[envVersion] || envVersion;
+            this.setData({ versionLabel });
+        } catch (e) {
+            console.warn('获取版本号失败:', e);
+        }
         // 先加载开关配置，再初始化页面数据
         this.loadToolsSwitch().then(() => {
             this.initPageData();
@@ -135,14 +150,18 @@ Page({
             } catch (e) {
                 console.warn('获取版本号失败:', e);
             }
-            
-            // 开发版和体验版始终显示所有工具
+
+            // 开发版和体验版始终显示所有工具（方便调试）
             // if (envVersion === 'develop' || envVersion === 'trial') {
             //     console.log('开发/体验版环境，显示所有工具');
             //     this.data.disabledTools = [];
             //     return;
             // }
-            
+
+            // 正式版：默认将敏感工具视为禁用（即使网络不好也不会误暴露），
+            // 后面如果成功读取到云端开关配置，再按配置覆盖
+            this.data.disabledTools = [...SWITCH_CONTROLLED_TOOLS];
+
             const res = await db.collection('tools_switch').get();
             const switches = res.data || [];
             
@@ -161,8 +180,10 @@ Page({
             this.data.disabledTools = disabledTools;
             console.log('工具开关加载完成，禁用的工具:', disabledTools);
         } catch (error) {
-            console.warn('加载工具开关失败，默认显示所有工具:', error);
-            this.data.disabledTools = [];
+            // 加载失败时：
+            // - 开发/体验版已经在上面直接 return，不会走到这里
+            // - 正式版保持前面设置的默认禁用配置，避免网络异常时暴露敏感工具
+            console.warn('加载工具开关失败，使用默认禁用配置:', error);
         }
     },
 
@@ -175,28 +196,51 @@ Page({
     },
 
     /**
+     * 从最近使用记录统计各工具使用次数
+     * @returns {Object} { toolId: count }
+     */
+    getUsageCountMap() {
+        const recentUses = storage.getRecentUses();
+        const map = {};
+        recentUses.forEach(item => {
+            map[item.toolId] = (map[item.toolId] || 0) + 1;
+        });
+        return map;
+    },
+
+    /**
+     * 按使用频次降序排序工具列表（频次高的在前，未使用过的按原顺序）
+     */
+    sortToolsByUsage(tools) {
+        const countMap = this.getUsageCountMap();
+        return tools.slice().sort((a, b) => (countMap[b.id] || 0) - (countMap[a.id] || 0));
+    },
+
+    /**
      * 初始化页面数据（合并多个 setData 为一次调用）
      */
     initPageData() {
-        const favorites = storage.getFavorites();
-        const recentUses = storage.getRecentUses();
+        // 先清理本地存储中已不存在的工具，再读取
+        const favorites = storage.cleanInvalidFavorites(VALID_TOOL_IDS);
+        const recentUses = storage.cleanInvalidRecentUses(VALID_TOOL_IDS);
         const availableTools = this.getAvailableTools();
         const disabledTools = this.data.disabledTools || [];
         
-        // 格式化最近使用（排除被禁用的工具）
+        // 格式化最近使用（仅保留存在的工具，并排除被禁用的工具）
         const formattedUses = recentUses
-            .filter(item => !disabledTools.includes(item.toolId))
+            .filter(item => VALID_TOOL_IDS.includes(item.toolId) && !disabledTools.includes(item.toolId))
             .map(item => ({
                 ...item,
                 relativeTime: this.formatRelativeTime(item.useTime),
                 isFavorite: favorites.indexOf(item.toolId) > -1
             }));
         
-        // 计算过滤后的工具列表（带收藏状态）
-        const filteredTools = availableTools.map(tool => ({
+        // 计算过滤后的工具列表（带收藏状态），按使用频次排序
+        const withFavorites = availableTools.map(tool => ({
             ...tool,
             isFavorite: favorites.indexOf(tool.id) > -1
         }));
+        const filteredTools = this.sortToolsByUsage(withFavorites);
         
         // 一次性设置所有数据
         const payload = {
@@ -224,7 +268,8 @@ Page({
      * 刷新页面数据（合并多个 setData 为一次调用）
      */
     refreshPageData() {
-        const favorites = storage.getFavorites();
+        const rawFavorites = storage.getFavorites();
+        const favorites = rawFavorites.filter(id => VALID_TOOL_IDS.includes(id));
         const currentTab = this.data.currentTab;
         
         // 构建更新数据
@@ -239,12 +284,16 @@ Page({
         
         // 根据当前 Tab 加载对应数据
         if (currentTab === 'recent') {
+            const disabledTools = this.data.disabledTools || [];
             const recentUses = storage.getRecentUses();
-            payload.recentUses = recentUses.map(item => ({
-                ...item,
-                relativeTime: this.formatRelativeTime(item.useTime),
-                isFavorite: favorites.indexOf(item.toolId) > -1
-            }));
+            const formattedUses = recentUses
+                .filter(item => VALID_TOOL_IDS.includes(item.toolId) && !disabledTools.includes(item.toolId))
+                .map(item => ({
+                    ...item,
+                    relativeTime: this.formatRelativeTime(item.useTime),
+                    isFavorite: favorites.indexOf(item.toolId) > -1
+                }));
+            payload.recentUses = formattedUses;
         } else if (currentTab === 'my') {
             const availableTools = this.getAvailableTools();
             payload.favoriteTools = availableTools.filter(tool => favorites.indexOf(tool.id) > -1).map(tool => ({
@@ -274,10 +323,11 @@ Page({
             );
         }
         
-        return result.map(tool => ({
+        const withFavorites = result.map(tool => ({
             ...tool,
             isFavorite: favorites.indexOf(tool.id) > -1
         }));
+        return this.sortToolsByUsage(withFavorites);
     },
 
     onShareAppMessage() {
@@ -467,7 +517,8 @@ Page({
 
     // 加载收藏列表（合并 setData）
     loadFavorites() {
-        const favorites = storage.getFavorites();
+        const raw = storage.getFavorites();
+        const favorites = raw.filter(id => VALID_TOOL_IDS.includes(id));
         this.setData({
             favorites,
             filteredTools: this.filterToolsWithFavorites(
@@ -482,17 +533,21 @@ Page({
     loadRecentUses() {
         const favorites = this.data.favorites || [];
         const recentUses = storage.getRecentUses();
-        const formattedUses = recentUses.map(item => ({
-            ...item,
-            relativeTime: this.formatRelativeTime(item.useTime),
-            isFavorite: favorites.indexOf(item.toolId) > -1
-        }));
+        const disabledTools = this.data.disabledTools || [];
+        const formattedUses = recentUses
+            .filter(item => VALID_TOOL_IDS.includes(item.toolId) && !disabledTools.includes(item.toolId))
+            .map(item => ({
+                ...item,
+                relativeTime: this.formatRelativeTime(item.useTime),
+                isFavorite: favorites.indexOf(item.toolId) > -1
+            }));
         this.setData({ recentUses: formattedUses });
     },
 
     // 加载收藏的工具列表
     loadFavoriteTools() {
-        const favorites = storage.getFavorites();
+        const raw = storage.getFavorites();
+        const favorites = raw.filter(id => VALID_TOOL_IDS.includes(id));
         const availableTools = this.getAvailableTools();
         const favoriteTools = availableTools.filter(tool => favorites.indexOf(tool.id) > -1).map(tool => ({
             ...tool,

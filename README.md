@@ -36,7 +36,7 @@ pages/
   │   ├── tax-calculator/       # 个税计算器
   │   ├── pension-calculator/   # 年终奖计算器
   │   ├── currency-exchange/    # 汇率转换
-  │   ├── stock-signals/        # 股票强力信号
+  │   ├── data-insights/        # 数据洞察
   │   ├── photo-privacy/        # 照片隐私清除
   │   ├── unit-converter/       # 单位换算器
   │   └── anniversary/          # 纪念日管家
@@ -78,7 +78,7 @@ cloud/
 | 个税计算器 | `pages/tools/tax-calculator/index` |
 | 年终奖计算器 | `pages/tools/pension-calculator/index` |
 | 汇率转换 | `pages/tools/currency-exchange/index` |
-| 股票强力信号 | `pages/tools/stock-signals/index` |
+| 数据洞察 | `pages/tools/data-insights/index` |
 | 照片隐私清除 | `pages/tools/photo-privacy/index` |
 | 单位换算器 | `pages/tools/unit-converter/index` |
 | 纪念日管家 | `pages/tools/anniversary/index` |

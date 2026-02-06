@@ -135,6 +135,44 @@ function clearFavorites() {
   }
 }
 
+/**
+ * 移除最近使用里已不存在的工具记录
+ * @param {string[]} validToolIds - 当前存在的工具 id 列表
+ */
+function cleanInvalidRecentUses(validToolIds) {
+  try {
+    const recentUses = wx.getStorageSync(STORAGE_KEYS.RECENT_TOOLS) || [];
+    const set = new Set(validToolIds);
+    const cleaned = recentUses.filter(item => set.has(item.toolId));
+    if (cleaned.length !== recentUses.length) {
+      wx.setStorageSync(STORAGE_KEYS.RECENT_TOOLS, cleaned);
+    }
+    return cleaned;
+  } catch (e) {
+    console.error('清理最近使用失败:', e);
+    return wx.getStorageSync(STORAGE_KEYS.RECENT_TOOLS) || [];
+  }
+}
+
+/**
+ * 移除收藏里已不存在的工具 id
+ * @param {string[]} validToolIds - 当前存在的工具 id 列表
+ */
+function cleanInvalidFavorites(validToolIds) {
+  try {
+    const favorites = wx.getStorageSync(STORAGE_KEYS.FAVORITE_TOOLS) || [];
+    const set = new Set(validToolIds);
+    const cleaned = favorites.filter(id => set.has(id));
+    if (cleaned.length !== favorites.length) {
+      wx.setStorageSync(STORAGE_KEYS.FAVORITE_TOOLS, cleaned);
+    }
+    return cleaned;
+  } catch (e) {
+    console.error('清理收藏失败:', e);
+    return wx.getStorageSync(STORAGE_KEYS.FAVORITE_TOOLS) || [];
+  }
+}
+
 module.exports = {
   saveRecentUse,
   getRecentUses,
@@ -142,5 +180,7 @@ module.exports = {
   getFavorites,
   isFavorite,
   clearRecentUses,
-  clearFavorites
+  clearFavorites,
+  cleanInvalidRecentUses,
+  cleanInvalidFavorites
 };

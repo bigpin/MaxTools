@@ -111,8 +111,8 @@ async function setReviewVersion(tool_id, version) {
         }
       });
   } else {
-    // 创建新记录
-    await db.collection('tools_switch').add({
+    // 新建时用 tool_id 作为文档 _id
+    await db.collection('tools_switch').doc(tool_id).set({
       data: {
         tool_id,
         review_version: version,
@@ -158,12 +158,16 @@ async function clearReviewVersion(tool_id) {
 }
 
 // 直接设置启用/禁用状态
+// enable：只更新已有记录，不新建（无记录时认为无需操作）
+// disable：无记录则新建一条 disabled 记录
 async function setEnabled(tool_id, enabled) {
   const existing = await db.collection('tools_switch')
     .where({ tool_id })
     .get();
   
-  if (existing.data && existing.data.length > 0) {
+  const hasRecord = existing.data && existing.data.length > 0;
+
+  if (hasRecord) {
     await db.collection('tools_switch')
       .doc(existing.data[0]._id)
       .update({
@@ -173,19 +177,30 @@ async function setEnabled(tool_id, enabled) {
           updated_at: new Date()
         }
       });
-  } else {
-    await db.collection('tools_switch').add({
-      data: {
-        tool_id,
-        enabled,
-        created_at: new Date(),
-        updated_at: new Date()
-      }
-    });
+    return {
+      success: true,
+      message: `已${enabled ? '启用' : '禁用'} ${tool_id}`
+    };
   }
-  
+
+  if (enabled) {
+    return {
+      success: true,
+      message: `${tool_id} 暂无开关记录，无需启用`
+    };
+  }
+
+  // 新建时用 tool_id 作为文档 _id，避免重复记录
+  await db.collection('tools_switch').doc(tool_id).set({
+    data: {
+      tool_id,
+      enabled: false,
+      created_at: new Date(),
+      updated_at: new Date()
+    }
+  });
   return {
     success: true,
-    message: `已${enabled ? '启用' : '禁用'} ${tool_id}`
+    message: `已禁用 ${tool_id}`
   };
 }
