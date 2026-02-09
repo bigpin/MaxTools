@@ -915,26 +915,15 @@ Page({
             isSubscribed: true
           });
         } else if (subscriber.status === 'inactive') {
-          // 如果订阅状态是失效的，提示用户重新订阅
+          // 如果订阅状态是失效的，直接标记为未订阅，并尝试帮用户重新发起订阅流程（不再额外弹自定义提示框）
           this.setData({
             isSubscribed: false
           });
           
-          // 延迟提示，避免页面加载时立即弹出
+          // 稍作延迟，避免和页面首屏渲染抢占时机
           setTimeout(() => {
-            wx.showModal({
-              title: '订阅已失效',
-              content: subscriber.lastError || '您的订阅状态已失效，可能是订阅授权已过期或在微信设置中关闭了订阅消息。请重新订阅以接收推送通知。',
-              showCancel: true,
-              cancelText: '稍后',
-              confirmText: '重新订阅',
-              success: (modalRes) => {
-                if (modalRes.confirm) {
-                  this.handleSubscribe();
-                }
-              }
-            });
-          }, 1000);
+            this.handleSubscribe();
+          }, 500);
         }
       } else {
         this.setData({
