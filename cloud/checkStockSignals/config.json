@@ -1,26 +1,6 @@
 {
   "triggers": [
     {
-      "name": "checkAt4pm",
-      "type": "timer",
-      "config": "0 0 16 * * * *"
-    },
-    {
-      "name": "checkAt5pm",
-      "type": "timer",
-      "config": "0 0 17 * * * *"
-    },
-    {
-      "name": "checkAt6pm",
-      "type": "timer",
-      "config": "0 0 18 * * * *"
-    },
-    {
-      "name": "checkAt7pm",
-      "type": "timer",
-      "config": "0 0 19 * * * *"
-    },
-    {
       "name": "checkAt8pm",
       "type": "timer",
       "config": "0 0 20 * * * *"
@@ -29,11 +9,6 @@
       "name": "checkAt8pm",
       "type": "timer",
       "config": "0 0 21 * * * *"
-    },
-    {
-      "name": "checkAt8pm",
-      "type": "timer",
-      "config": "0 0 22 * * * *"
     }
   ]
 }
