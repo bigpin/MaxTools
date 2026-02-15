@@ -1,5 +1,6 @@
 // pages/tools/currency-exchange/index.js
 const { CONFIG } = require('../../../utils/config');
+const versionUtil = require('../../../utils/version');
 // F2 库引入（如果未安装则使用原生 canvas）
 let F2 = null;
 try {
@@ -63,6 +64,7 @@ Page({
     },
 
     onLoad() {
+        versionUtil.setNavigationBarTitleWithVersion('汇率转换');
         // 初始化，设置最大日期为今天
         const today = new Date();
         const maxDate = today.toISOString().split('T')[0];

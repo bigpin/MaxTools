@@ -1,5 +1,6 @@
 // pages/tools/anniversary/add.js
 const dateUtils = require('../../../utils/dateUtils');
+const versionUtil = require('../../../utils/version');
 
 // 纪念日类型配置
 const TYPE_CONFIG = {
@@ -68,6 +69,7 @@ Page({
   },
 
   onLoad(options) {
+    versionUtil.setNavigationBarTitleWithVersion('添加纪念日');
     // 生成类型列表
     const typeList = Object.keys(TYPE_CONFIG).map(key => ({
       value: key,

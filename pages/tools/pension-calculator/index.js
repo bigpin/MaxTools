@@ -1,4 +1,6 @@
 // pages/tools/pension-calculator/index.js
+const versionUtil = require('../../../utils/version');
+
 Page({
     data: {
         salary: '50000',
@@ -7,6 +9,7 @@ Page({
     },
 
     onLoad() {
+        versionUtil.setNavigationBarTitleWithVersion('年终奖计算器');
         this.salaryInput = this.selectComponent('#salary');
     },
 

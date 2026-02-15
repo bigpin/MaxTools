@@ -1,4 +1,6 @@
 // pages/tools/unit-converter/index.js
+const versionUtil = require('../../../utils/version');
+
 Page({
   data: {
     // 当前选择的单位类型索引
@@ -37,6 +39,7 @@ Page({
   },
 
   onLoad() {
+    versionUtil.setNavigationBarTitleWithVersion('单位换算器');
     // 初始化第一个单位类型
     this.initUnitType(0);
   },

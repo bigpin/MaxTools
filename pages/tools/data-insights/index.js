@@ -1,5 +1,6 @@
 // pages/tools/data-insights/index.js
 const db = wx.cloud.database();
+const versionUtil = require('../../../utils/version');
 
 // 信号类型中文映射
 const SIGNAL_TYPE_MAP = {
@@ -67,6 +68,7 @@ Page({
   },
 
   onLoad() {
+    versionUtil.setNavigationBarTitleWithVersion('数据洞察');
     // 先校验工具开关：审核/禁用时直接回首页，避免从订阅消息等直达链接进入仍看到本页
     this.checkToolSwitchAndRedirect().then((allowed) => {
       if (!allowed) return;
@@ -77,23 +79,21 @@ Page({
 
   /**
    * 校验工具开关，正式版且被禁用或处于审核版本时重定向到首页
+   * 审核时微信端 version 常为空，故：只要库里有 review_version 就视为审核中并重定向
    * @returns {Promise<boolean>} 是否允许继续留在本页
    */
   async checkToolSwitchAndRedirect() {
     try {
-      let currentVersion = '';
       let envVersion = 'develop';
       try {
         const accountInfo = wx.getAccountInfoSync();
-        currentVersion = accountInfo.miniProgram.version || '';
         envVersion = accountInfo.miniProgram.envVersion || 'develop';
       } catch (e) {}
       if (envVersion === 'develop' || envVersion === 'trial') return true;
       const res = await db.collection('tools_switch').where({ tool_id: 'data-insights' }).get();
       const list = res.data || [];
-      const allowed = list.some(
-        (s) => s.enabled !== false && (!s.review_version || s.review_version !== currentVersion)
-      );
+      // 正式版：仅当存在「已启用且未设审核版本」的记录时才允许进入
+      const allowed = list.some((s) => s.enabled !== false && !s.review_version);
       if (!allowed) {
         wx.redirectTo({ url: '/pages/index/index' });
         return false;

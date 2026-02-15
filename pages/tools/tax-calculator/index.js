@@ -1,4 +1,6 @@
 // pages/tools/tax-calculator/index.js
+const versionUtil = require('../../../utils/version');
+
 Page({
     data: {
         salary: '50000',
@@ -25,6 +27,7 @@ Page({
     },
 
     onLoad() {
+        versionUtil.setNavigationBarTitleWithVersion('个税计算器');
         // 组件引用将在 ready 中初始化
     },
 

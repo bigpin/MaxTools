@@ -1,4 +1,6 @@
-// pages/detail.js
+// pages/detail/detail.js
+const versionUtil = require('../../utils/version');
+
 Page({
     data: {
         detailText: '',
@@ -6,6 +8,7 @@ Page({
     },
 
     onLoad(options) {
+        versionUtil.setNavigationBarTitleWithVersion('详情');
         this.setData({
             monthIndex: options.index ? parseInt(options.index) : 0
         });

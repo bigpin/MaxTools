@@ -2,6 +2,7 @@
 // 照片隐私清除工具 - 去除图片EXIF信息
 
 const { parseExif, formatGPSCoordinate, formatDateTime } = require('../../../utils/exif-parser');
+const versionUtil = require('../../../utils/version');
 
 Page({
     data: {
@@ -21,6 +22,7 @@ Page({
     },
 
     onLoad() {
+        versionUtil.setNavigationBarTitleWithVersion('隐私清除器');
         console.log('照片隐私清除工具加载');
     },
 

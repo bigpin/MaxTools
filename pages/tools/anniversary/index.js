@@ -1,5 +1,6 @@
 // pages/tools/anniversary/index.js
 const dateUtils = require('../../../utils/dateUtils');
+const versionUtil = require('../../../utils/version');
 
 // 纪念日类型配置
 const TYPE_CONFIG = {
@@ -51,6 +52,7 @@ Page({
   },
 
   onLoad() {
+    versionUtil.setNavigationBarTitleWithVersion('纪念日管家');
     this.loadAnniversaryList();
   },
 
