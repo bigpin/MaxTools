@@ -67,10 +67,42 @@ Page({
   },
 
   onLoad() {
-    // 加载数据
-    this.loadSignals();
-    // 检查订阅状态
-    this.checkSubscribeStatus();
+    // 先校验工具开关：审核/禁用时直接回首页，避免从订阅消息等直达链接进入仍看到本页
+    this.checkToolSwitchAndRedirect().then((allowed) => {
+      if (!allowed) return;
+      this.loadSignals();
+      this.checkSubscribeStatus();
+    });
+  },
+
+  /**
+   * 校验工具开关，正式版且被禁用或处于审核版本时重定向到首页
+   * @returns {Promise<boolean>} 是否允许继续留在本页
+   */
+  async checkToolSwitchAndRedirect() {
+    try {
+      let currentVersion = '';
+      let envVersion = 'develop';
+      try {
+        const accountInfo = wx.getAccountInfoSync();
+        currentVersion = accountInfo.miniProgram.version || '';
+        envVersion = accountInfo.miniProgram.envVersion || 'develop';
+      } catch (e) {}
+      if (envVersion === 'develop' || envVersion === 'trial') return true;
+      const res = await db.collection('tools_switch').where({ tool_id: 'data-insights' }).get();
+      const list = res.data || [];
+      const allowed = list.some(
+        (s) => s.enabled !== false && (!s.review_version || s.review_version !== currentVersion)
+      );
+      if (!allowed) {
+        wx.redirectTo({ url: '/pages/index/index' });
+        return false;
+      }
+      return true;
+    } catch (e) {
+      wx.redirectTo({ url: '/pages/index/index' });
+      return false;
+    }
   },
 
   onShow() {
