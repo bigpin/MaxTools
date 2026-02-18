@@ -127,63 +127,54 @@ Page({
     /**
      * 从云数据库加载工具开关配置
      * tools_switch 表结构:
-     *   - 方式1: { tool_id: 'data-insights', enabled: true/false }
-     *   - 方式2: { tool_id: 'data-insights', review_version: '1.0.5' } (审核中的版本号)
-     * 
-     * 判断逻辑：
-     *   1. 开发版/体验版：始终显示所有工具（方便测试）
-     *   2. 正式版：
-     *      - 如果 enabled === false，直接禁用
-     *      - 如果 review_version 存在且等于当前版本号，禁用（审核中）
-     *      - 其他情况显示
+     *   - { tool_id: 'data-insights', enabled: true/false }
+     *   - { tool_id: 'data-insights', review_version: '1.0.5' } 表示审核中，不展示
+     *
+     * 逻辑：
+     *   - 开发版：始终显示所有工具（方便本地调试）
+     *   - 体验版：不受开关控制，敏感功能一律禁用（不读云端）
+     *   - 正式版：默认禁用，仅当云端有「已开启」记录时才加入列表
      */
     async loadToolsSwitch() {
         try {
-            // 获取当前小程序版本号和环境
-            let currentVersion = '';
             let envVersion = 'develop';
             try {
                 const accountInfo = wx.getAccountInfoSync();
-                currentVersion = accountInfo.miniProgram.version || '';
                 envVersion = accountInfo.miniProgram.envVersion || 'develop';
-                console.log('小程序环境:', envVersion, '版本:', currentVersion || '(空)');
+                console.log('小程序环境:', envVersion);
             } catch (e) {
                 console.warn('获取版本号失败:', e);
             }
 
-            // 开发版和体验版始终显示所有工具（方便调试）
-            // if (envVersion === 'develop' || envVersion === 'trial') {
-            //     console.log('开发/体验版环境，显示所有工具');
+            // if (envVersion === 'develop') {
+            //     console.log('开发版环境，显示所有工具');
             //     this.data.disabledTools = [];
             //     return;
             // }
 
-            // 正式版：默认将敏感工具视为禁用（即使网络不好也不会误暴露），
-            // 后面如果成功读取到云端开关配置，再按配置覆盖
-            this.data.disabledTools = [...SWITCH_CONTROLLED_TOOLS];
+            if (envVersion === 'trial') {
+                console.log('体验版环境，敏感功能一律禁用');
+                this.data.disabledTools = [...SWITCH_CONTROLLED_TOOLS];
+                return;
+            }
 
-            const res = await db.collection('tools_switch').get();
-            const switches = res.data || [];
-            
-            // 找出被禁用的工具（仅正式版生效）
-            const disabledTools = switches
-                .filter(s => {
-                    if (!SWITCH_CONTROLLED_TOOLS.includes(s.tool_id)) return false;
-                    // 方式1: enabled 显式设为 false
-                    if (s.enabled === false) return true;
-                    // 方式2: 当前版本是审核版本
-                    if (s.review_version && s.review_version === currentVersion) return true;
-                    return false;
-                })
-                .map(s => s.tool_id);
-            
+            // 正式版：默认全部敏感工具禁用，只有云端明确「已开启」才加入列表
+            let disabledTools = [...SWITCH_CONTROLLED_TOOLS];
+            try {
+                const res = await db.collection('tools_switch').get();
+                const switches = res.data || [];
+                const allowedIds = switches
+                    .filter(s => SWITCH_CONTROLLED_TOOLS.includes(s.tool_id) && s.enabled !== false && !s.review_version)
+                    .map(s => s.tool_id);
+                disabledTools = SWITCH_CONTROLLED_TOOLS.filter(id => !allowedIds.includes(id));
+                console.log('工具开关加载完成，禁用的工具:', disabledTools, '已开启:', allowedIds);
+            } catch (e) {
+                console.warn('读取工具开关失败，保持默认禁用:', e);
+            }
             this.data.disabledTools = disabledTools;
-            console.log('工具开关加载完成，禁用的工具:', disabledTools);
         } catch (error) {
-            // 加载失败时：
-            // - 开发/体验版已经在上面直接 return，不会走到这里
-            // - 正式版保持前面设置的默认禁用配置，避免网络异常时暴露敏感工具
             console.warn('加载工具开关失败，使用默认禁用配置:', error);
+            this.data.disabledTools = [...SWITCH_CONTROLLED_TOOLS];
         }
     },
 
