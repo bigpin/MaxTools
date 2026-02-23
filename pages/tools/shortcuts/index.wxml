@@ -1,0 +1,82 @@
+<view class="container">
+  <view class="status-bar" style="height: {{statusBarHeight}}px;" />
+  <view class="header">
+    <view class="header-left">
+      <view class="back-btn" bindtap="goBack">
+        <t-icon name="chevron-left" size="48rpx" color="#fff" />
+      </view>
+      <t-icon name="link" size="44rpx" color="#fff" />
+      <text class="header-title">iOS 快捷方式</text>
+    </view>
+  </view>
+
+  <view class="search-wrap">
+    <t-search
+      placeholder="搜索名称或关键词"
+      value="{{searchKeyword}}"
+      bind:change="onSearchInput"
+      bind:clear="onSearchClear"
+      shape="round"
+    />
+  </view>
+
+  <view class="stats-bar" wx:if="{{displayList.length > 0}}">
+    <text class="stats-text">共 {{displayList.length}} 个 · 总使用 {{totalClicks}} 次</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <t-loading theme="dots" size="40rpx" text="加载中..." />
+  </view>
+
+  <view wx:elif="{{displayList.length === 0}}" class="empty-state">
+    <view class="empty-icon">
+      <t-icon name="link" size="100rpx" color="#b8c9d0" />
+    </view>
+    <text class="empty-text">还没有快捷方式</text>
+    <text class="empty-desc">快捷方式由后台维护，请稍后再看</text>
+  </view>
+
+  <scroll-view
+    wx:else
+    class="shortcut-list"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <view
+      wx:for="{{displayList}}"
+      wx:key="id"
+      class="shortcut-card"
+      bindtap="onShortcutTap"
+      data-id="{{item._id}}"
+    >
+      <view class="card-icon">
+        <image wx:if="{{item.icon}}" class="card-icon-img" src="{{item.icon}}" mode="aspectFill" />
+        <t-icon wx:else name="link" size="44rpx" color="#1a5d6a" />
+      </view>
+      <view class="card-content">
+        <view class="card-title">{{item.name}}</view>
+        <view class="card-desc" wx:if="{{item.description}}">{{item.description}}</view>
+        <view class="card-meta">已使用 {{item.clickCount || 0}} 次</view>
+      </view>
+      <view class="card-arrow">
+        <t-icon name="chevron-right" size="32rpx" color="#b8c9d0" />
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="fab-help" bindtap="onShowUsage">
+    <t-icon name="help-circle" size="48rpx" color="#fff" />
+  </view>
+
+  <!-- 使用方式说明（自定义 slot 左对齐排版） -->
+  <t-dialog
+    visible="{{showUsageDialog}}"
+    title="使用方式说明"
+    confirm-btn="知道了"
+    bind:confirm="onCloseUsageDialog"
+    t-class-content="usage-dialog-content"
+  >
+    <view slot="content" class="usage-dialog-body">{{usageContent}}</view>
+  </t-dialog>
+</view>

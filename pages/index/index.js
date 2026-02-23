@@ -78,6 +78,14 @@ const TOOLS = [
         category: 'finance',
         description: '多维数据分析与趋势洞察',
         path: '/pages/tools/data-insights/index'
+    },
+    {
+        id: 'shortcuts',
+        name: 'iOS 快捷方式',
+        icon: 'link',
+        category: 'life',
+        description: '收藏与打开 iOS 快捷方式，支持搜索与使用统计',
+        path: '/pages/tools/shortcuts/index'
     }
 ];
 

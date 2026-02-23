@@ -1,0 +1,1 @@
+{"name":"shortcutIncrementClick","version":"1.0.0","description":"快捷方式点击次数+1","main":"index.js","dependencies":{"wx-server-sdk":"~2.6.3"}}
