@@ -402,12 +402,15 @@ Page({
         // 获取新数据
         this.setData({ loading: true });
         try {
-            // 构建URL：历史汇率使用 /YYYY-MM-DD，最新汇率使用 /latest
+            // 构建URL：历史汇率使用 /YYYY-MM-DD，最新汇率使用 /v1/latest
+            // 参考 Frankfurter 文档：https://frankfurter.dev/
             let url = '';
             if (date) {
-                url = `https://api.frankfurter.app/${date}?from=${from_code}&to=${to_code}`;
+                // 指定某一天的汇率：/{date}?base=FROM&symbols=TO
+                url = `https://api.frankfurter.dev/v1/${date}?base=${from_code}&symbols=${to_code}`;
             } else {
-                url = `${CONFIG.EXCHANGE_API_URL}?from=${from_code}&to=${to_code}`;
+                // 最新汇率：/v1/latest?base=FROM&symbols=TO
+                url = `${CONFIG.EXCHANGE_API_URL}?base=${from_code}&symbols=${to_code}`;
             }
 
             // 使用 Promise 包装 wx.request
@@ -699,7 +702,9 @@ Page({
         // 历史图表加载用 chartLoading，不占用顶部大 loading
         this.setData({ chartLoading: true });
         try {
-            const url = `https://api.frankfurter.app/${startDate}..${endDate}?from=${from_code}&to=${to_code}`;
+            // 时间区间汇率：/{start}..{end}?base=FROM&symbols=TO
+            // 参考 Frankfurter 文档：https://frankfurter.dev/
+            const url = `https://api.frankfurter.dev/v1/${startDate}..${endDate}?base=${from_code}&symbols=${to_code}`;
             
             const res = await new Promise((resolve, reject) => {
                 wx.request({

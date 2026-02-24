@@ -95,6 +95,10 @@ const SWITCH_CONTROLLED_TOOLS = ['data-insights'];
 // 当前存在的工具 id 列表（用于过滤最近使用/收藏中的无效项）
 const VALID_TOOL_IDS = TOOLS.map(t => t.id);
 
+// 工具 id → 最新定义的映射，用于同步最近使用中的过期快照
+const TOOL_MAP = {};
+TOOLS.forEach(t => { TOOL_MAP[t.id] = t; });
+
 Page({
     data: {
         categories: ['finance', 'image', 'life'],
@@ -226,13 +230,18 @@ Page({
         const disabledTools = this.data.disabledTools || [];
         
         // 格式化最近使用（仅保留存在的工具，并排除被禁用的工具）
+        // 同时用最新 TOOLS 定义覆盖存储中的过期 toolInfo
         const formattedUses = recentUses
             .filter(item => VALID_TOOL_IDS.includes(item.toolId) && !disabledTools.includes(item.toolId))
-            .map(item => ({
-                ...item,
-                relativeTime: this.formatRelativeTime(item.useTime),
-                isFavorite: favorites.indexOf(item.toolId) > -1
-            }));
+            .map(item => {
+                const latest = TOOL_MAP[item.toolId];
+                return {
+                    ...item,
+                    toolInfo: latest ? { ...latest } : item.toolInfo,
+                    relativeTime: this.formatRelativeTime(item.useTime),
+                    isFavorite: favorites.indexOf(item.toolId) > -1
+                };
+            });
         
         // 计算过滤后的工具列表（带收藏状态），按使用频次排序
         const withFavorites = availableTools.map(tool => ({
@@ -287,11 +296,15 @@ Page({
             const recentUses = storage.getRecentUses();
             const formattedUses = recentUses
                 .filter(item => VALID_TOOL_IDS.includes(item.toolId) && !disabledTools.includes(item.toolId))
-                .map(item => ({
-                    ...item,
-                    relativeTime: this.formatRelativeTime(item.useTime),
-                    isFavorite: favorites.indexOf(item.toolId) > -1
-                }));
+                .map(item => {
+                    const latest = TOOL_MAP[item.toolId];
+                    return {
+                        ...item,
+                        toolInfo: latest ? { ...latest } : item.toolInfo,
+                        relativeTime: this.formatRelativeTime(item.useTime),
+                        isFavorite: favorites.indexOf(item.toolId) > -1
+                    };
+                });
             payload.recentUses = formattedUses;
         } else if (currentTab === 'my') {
             const availableTools = this.getAvailableTools();
@@ -415,14 +428,15 @@ Page({
             return;
         }
         
-        // 记录使用时间（使用原始工具数据，不包含isFavorite）
+        // 始终从最新 TOOLS 定义取数据，防止使用过期快照
+        const latestDef = TOOL_MAP[tool.id] || tool;
         const toolInfo = {
-            id: tool.id,
-            name: tool.name,
-            icon: tool.icon,
-            category: tool.category,
-            description: tool.description,
-            path: tool.path
+            id: latestDef.id,
+            name: latestDef.name,
+            icon: latestDef.icon,
+            category: latestDef.category,
+            description: latestDef.description,
+            path: latestDef.path
         };
         storage.saveRecentUse(tool.id, toolInfo);
         
@@ -535,11 +549,15 @@ Page({
         const disabledTools = this.data.disabledTools || [];
         const formattedUses = recentUses
             .filter(item => VALID_TOOL_IDS.includes(item.toolId) && !disabledTools.includes(item.toolId))
-            .map(item => ({
-                ...item,
-                relativeTime: this.formatRelativeTime(item.useTime),
-                isFavorite: favorites.indexOf(item.toolId) > -1
-            }));
+            .map(item => {
+                const latest = TOOL_MAP[item.toolId];
+                return {
+                    ...item,
+                    toolInfo: latest ? { ...latest } : item.toolInfo,
+                    relativeTime: this.formatRelativeTime(item.useTime),
+                    isFavorite: favorites.indexOf(item.toolId) > -1
+                };
+            });
         this.setData({ recentUses: formattedUses });
     },
 
