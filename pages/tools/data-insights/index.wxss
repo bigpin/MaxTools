@@ -450,7 +450,7 @@ page {
 /* 卡片头部 */
 .card-header {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: 16rpx;
   padding: 24rpx;
@@ -458,8 +458,10 @@ page {
 
 .card-header-right {
   display: flex;
-  align-items: center;
-  gap: 16rpx;
+  align-items: stretch;
+  gap: 12rpx;
+  flex-shrink: 0;
+  max-width: 380rpx;
 }
 
 .card-detail-content {
@@ -471,6 +473,9 @@ page {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  justify-content: center;
   gap: 4rpx;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -478,6 +483,7 @@ page {
   padding: 12rpx 16rpx;
   border-radius: 8rpx;
   border: 1rpx solid rgba(211, 47, 47, 0.2);
+  box-sizing: border-box;
 }
 
 .stock-info-wrapper:active {
@@ -491,6 +497,10 @@ page {
   color: #1a1a1a;
   letter-spacing: 0.5rpx;
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .stock-code {
@@ -504,13 +514,102 @@ page {
 .stock-summary-card {
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  padding: 8rpx 16rpx;
+  align-self: stretch;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  row-gap: 8rpx;
+  padding: 8rpx 12rpx;
   background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
   border-radius: 12rpx;
   border: 1rpx solid #e9ecef;
   box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.04);
+  flex: 1;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 右侧摘要区文字略大，便于阅读 */
+.stock-summary-card .summary-label {
+  font-size: 20rpx;
+}
+
+.stock-summary-card .summary-value {
+  font-size: 26rpx;
+}
+
+.stock-summary-card .summary-value.success-rate-highlight {
+  font-size: 30rpx;
+}
+
+.stock-summary-card .summary-value.trade-heat-value {
+  font-size: 28rpx;
+}
+
+.stock-summary-card .trade-heat-inline-tag {
+  font-size: 22rpx;
+}
+
+.stock-summary-card .summary-value.feature-count-value {
+  color: #d32f2f;
+  font-weight: 700;
+}
+
+/* 右侧展开箭头：与摘要区同高时垂直居中 */
+.card-expand-icon {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  justify-content: center;
   flex-shrink: 0;
+  padding-left: 4rpx;
+}
+
+/* 三列：整体胜率 / 特征数 上下结构；交易热度第二行为分数+档位 */
+.summary-item-fixed {
+  flex: 1;
+  min-width: 96rpx;
+  justify-content: flex-start;
+}
+
+/* 交易热度：左标签 + 右分数与档位（左右结构） */
+.summary-item-heat-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 140rpx;
+  gap: 10rpx 12rpx;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+}
+
+.summary-item-heat-row .heat-label-side {
+  flex-shrink: 0;
+}
+
+.summary-value-block-heat {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 6rpx 10rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 交易热度数值与档位同色（分档颜色在 inline style；字号在 .stock-summary-card 内放大） */
+.summary-value.trade-heat-value {
+  font-weight: 700;
+}
+
+.trade-heat-inline-tag {
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .summary-item {
@@ -522,12 +621,14 @@ page {
 
 .summary-divider {
   width: 1rpx;
-  height: 40rpx;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 56rpx;
   background: linear-gradient(180deg, transparent 0%, #e0e0e0 50%, transparent 100%);
 }
 
 .summary-label {
-  font-size: 20rpx;
+  font-size: 18rpx;
   color: #8c8c8c;
   font-weight: 400;
 }

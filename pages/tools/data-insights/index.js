@@ -194,6 +194,9 @@ Page({
             report_id: summary.report_id || summary._id,
             overall_success_rate: summary.overall_success_rate || 0,
             total_signal_count: summary.total_signal_count || 0,
+            trade_heat_score: summary.trade_heat_score,
+            trade_heat_max: summary.trade_heat_max,
+            tradeHeat: this.buildTradeHeatDisplay(summary),
             signals: [] // 稍后从signal_event补充
           };
         }
@@ -390,6 +393,9 @@ Page({
           report_id: summary.report_id || summary._id, // 保存report_id用于查询signal_event
           overall_success_rate: summary.overall_success_rate || 0,
           total_signal_count: summary.total_signal_count || 0,
+          trade_heat_score: summary.trade_heat_score,
+          trade_heat_max: summary.trade_heat_max,
+          tradeHeat: this.buildTradeHeatDisplay(summary),
           signals: [] // 稍后从signal_event补充
         };
       }
@@ -715,6 +721,9 @@ Page({
             report_id: summary.report_id || summary._id,
             overall_success_rate: summary.overall_success_rate || 0,
             total_signal_count: summary.total_signal_count || 0,
+            trade_heat_score: summary.trade_heat_score,
+            trade_heat_max: summary.trade_heat_max,
+            tradeHeat: this.buildTradeHeatDisplay(summary),
             signals: [] // 稍后从signal_event补充
           };
         }
@@ -825,6 +834,50 @@ Page({
       loadingOtherDates[date] = false;
       this.setData({ loadingOtherDates });
     }
+  },
+
+  /**
+   * 根据 stock_summary 的 trade_heat_score / trade_heat_max 生成卡片展示数据
+   * @param {object} summary 含 trade_heat_score、trade_heat_max（可为 null）
+   */
+  buildTradeHeatDisplay(summary) {
+    const rawScore = summary && summary.trade_heat_score;
+    const rawMax = summary && summary.trade_heat_max;
+    const score = rawScore == null || rawScore === '' ? null : Number(rawScore);
+    const max = rawMax == null || rawMax === '' ? null : Number(rawMax);
+    if (score == null || max == null || Number.isNaN(score) || Number.isNaN(max) || max <= 0) {
+      return {
+        hasData: false,
+        scoreText: '—',
+        tagText: '暂无',
+        tagColor: '#9e9e9e',
+        level: 'none'
+      };
+    }
+    const ratio = Math.min(1, Math.max(0, score / max));
+    let level;
+    let tagText;
+    let tagColor;
+    if (ratio < 0.34) {
+      level = 'low';
+      tagText = '偏低';
+      tagColor = '#0277bd';
+    } else if (ratio < 0.67) {
+      level = 'mid';
+      tagText = '一般';
+      tagColor = '#ef6c00';
+    } else {
+      level = 'high';
+      tagText = '活跃';
+      tagColor = '#c62828';
+    }
+    return {
+      hasData: true,
+      scoreText: `${score}/${max}`,
+      tagText,
+      tagColor,
+      level
+    };
   },
 
   /**
