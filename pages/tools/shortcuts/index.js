@@ -7,6 +7,8 @@ Page({
     shortcutList: [],
     displayList: [],
     searchKeyword: '',
+    /** 排序：clicks 使用次数 | time 最新添加 | name 名称 */
+    sortBy: 'clicks',
     totalClicks: 0,
     loading: false,
     showUsageDialog: false,
@@ -45,7 +47,6 @@ Page({
         id: item._id,
         clickCount: item.clickCount || 0
       }));
-      list.sort((a, b) => (b.clickCount || 0) - (a.clickCount || 0));
       const totalClicks = list.reduce((sum, i) => sum + (i.clickCount || 0), 0);
       this.setData({
         shortcutList: list,
@@ -81,6 +82,32 @@ Page({
     this.applySearch();
   },
 
+  /** 切换排序方式 */
+  onSortBy(e) {
+    const sort = e.currentTarget.dataset.sort;
+    if (!sort || sort === this.data.sortBy) return;
+    this.setData({ sortBy: sort });
+    this.applySearch();
+  },
+
+  /** 按当前 sortBy 排序列表 */
+  sortDisplayList(list) {
+    const sortBy = this.data.sortBy || 'clicks';
+    const arr = [...list];
+    if (sortBy === 'time') {
+      arr.sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      });
+    } else if (sortBy === 'name') {
+      arr.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-CN'));
+    } else {
+      arr.sort((a, b) => (b.clickCount || 0) - (a.clickCount || 0));
+    }
+    return arr;
+  },
+
   /** 按名称、关键词模糊过滤 */
   applySearch() {
     const { shortcutList, searchKeyword } = this.data;
@@ -97,7 +124,7 @@ Page({
           desc.indexOf(kw) >= 0;
       });
     }
-    displayList.sort((a, b) => (b.clickCount || 0) - (a.clickCount || 0));
+    displayList = this.sortDisplayList(displayList);
     const totalClicks = displayList.reduce((sum, i) => sum + (i.clickCount || 0), 0);
     this.setData({ displayList, totalClicks });
   },

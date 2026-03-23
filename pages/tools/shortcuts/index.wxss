@@ -66,9 +66,88 @@ page {
   padding: 0 24rpx 16rpx;
 }
 
+.stats-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
 .stats-text {
+  flex: 1;
+  min-width: 0;
   font-size: 24rpx;
   color: #7a9aa8;
+  line-height: 1.4;
+}
+
+/* 外层：方形圆角，底色与内层区分 */
+.sort-wrap {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 10rpx;
+  padding: 10rpx 12rpx 10rpx 10rpx;
+  background: linear-gradient(165deg, #c5dce3 0%, #b0d0d9 100%);
+  border: 2rpx solid #5a8f9e;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 14rpx rgba(26, 93, 106, 0.2);
+}
+
+/* 「排序」：纯文字说明，不做按钮样式 */
+.sort-label-wrap {
+  display: flex;
+  align-items: center;
+  padding: 0 2rpx 0 4rpx;
+  flex-shrink: 0;
+}
+
+.sort-label {
+  font-size: 22rpx;
+  color: rgba(30, 55, 62, 0.75);
+  font-weight: 500;
+  letter-spacing: 2rpx;
+}
+
+/* 与按钮区的分隔线 */
+.sort-divider {
+  width: 1rpx;
+  height: 40rpx;
+  background: rgba(45, 80, 90, 0.22);
+  flex-shrink: 0;
+}
+
+/* 内层：与外层同色系，不用白底框 */
+.sort-btns {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 6rpx 0 6rpx 4rpx;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+}
+
+.sort-chip {
+  font-size: 22rpx;
+  color: #2a454d;
+  padding: 8rpx 14rpx;
+  border-radius: 8rpx;
+  background-color: rgba(255, 255, 255, 0.28);
+  border: 1rpx solid rgba(45, 80, 90, 0.2);
+  line-height: 1.2;
+}
+
+.sort-chip:active {
+  opacity: 0.92;
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.sort-chip-active {
+  color: #fff;
+  background-color: #1a5d6a;
+  border-color: #1a5d6a;
+  font-weight: 600;
 }
 
 .loading-wrap {
@@ -120,7 +199,7 @@ page {
 
 .shortcut-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   background-color: #fff;
   border-radius: 20rpx;
   padding: 24rpx 20rpx;
@@ -178,10 +257,11 @@ page {
   margin-bottom: 4rpx;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.4;
+  word-break: break-word;
 }
 
 .card-meta {
@@ -192,6 +272,7 @@ page {
 .card-arrow {
   margin-left: 16rpx;
   flex-shrink: 0;
+  align-self: center;
 }
 
 .fab-help {
