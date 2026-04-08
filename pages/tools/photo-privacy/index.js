@@ -3,6 +3,7 @@
 
 const { parseExif, formatGPSCoordinate, formatDateTime } = require('../../../utils/exif-parser');
 const versionUtil = require('../../../utils/version');
+const { checkImageSafety } = require('../../../utils/contentCheck');
 
 Page({
     data: {
@@ -48,6 +49,9 @@ Page({
                     }
                 });
                 
+                // 提交图片内容安全异步检测
+                checkImageSafety(tempFilePath);
+
                 // 获取图片信息和 EXIF
                 this.analyzeImage(tempFilePath);
             },
