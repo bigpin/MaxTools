@@ -1,0 +1,108 @@
+<view class="page">
+  <!-- Status Bar -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px;" />
+
+  <!-- Header -->
+  <view class="header">
+    <view class="header-left">
+      <view class="back-btn" bindtap="goBack">
+        <t-icon name="chevron-left" size="48rpx" color="#fff" />
+      </view>
+      <t-icon name="setting" size="40rpx" color="#fff" />
+      <text class="header-title">自定义菜单</text>
+    </view>
+  </view>
+
+  <!-- Quick Actions -->
+  <view class="quick-actions">
+    <view class="quick-btn" bindtap="showAddFood">
+      <t-icon name="add-circle" size="36rpx" color="#FF9500" />
+      <text class="quick-btn-text">添加食物</text>
+    </view>
+    <view class="quick-divider" />
+    <view class="quick-btn" bindtap="onEnableAll">
+      <t-icon name="check-circle" size="36rpx" color="#4CAF50" />
+      <text class="quick-btn-text">全部开启</text>
+    </view>
+    <view class="quick-divider" />
+    <view class="quick-btn" bindtap="onResetAll">
+      <t-icon name="refresh" size="36rpx" color="#9E8E7E" />
+      <text class="quick-btn-text">重置</text>
+    </view>
+  </view>
+
+  <!-- Food Category List -->
+  <scroll-view class="food-list" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="category-section" wx:for="{{categories}}" wx:key="key">
+      <!-- Category Header -->
+      <view class="category-header" bindtap="toggleCategory" data-category="{{item.key}}">
+        <view class="category-left">
+          <text class="category-emoji">{{item.emoji}}</text>
+          <text class="category-name">{{item.name}}</text>
+          <text class="category-count">{{groupedFoods[item.key].length}}项</text>
+        </view>
+        <view class="category-arrow">
+          <t-icon name="{{expandedCategory === item.key ? 'chevron-up' : 'chevron-down'}}"
+                  size="32rpx" color="#BFA07A" />
+        </view>
+      </view>
+
+      <!-- Food Items (Expanded) -->
+      <view class="food-items" wx:if="{{expandedCategory === item.key}}">
+        <view class="food-item" wx:for="{{groupedFoods[item.key]}}"
+              wx:for-item="food" wx:key="id">
+          <view class="food-info">
+            <text class="food-name {{food.enabled ? '' : 'food-disabled'}}">{{food.name}}</text>
+            <view wx:if="{{food.custom}}" class="custom-badge">自定义</view>
+          </view>
+          <view class="food-actions">
+            <view wx:if="{{food.custom}}" class="delete-btn" catchtap="onDeleteCustomFood" data-id="{{food.id}}">
+              <t-icon name="delete" size="36rpx" color="#FF6B35" />
+            </view>
+            <t-switch
+              value="{{food.enabled}}"
+              bind:change="onToggleFood"
+              data-id="{{food.id}}"
+              size="small"
+            />
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="list-footer">
+      <text class="footer-text">关闭的食物不会出现在随机结果中</text>
+    </view>
+  </scroll-view>
+
+  <!-- Add Food Dialog -->
+  <view class="dialog-mask {{showAddDialog ? 'dialog-mask-visible' : ''}}"
+        wx:if="{{showAddDialog}}" bindtap="hideAddFood">
+    <view class="dialog-card" catchtap="">
+      <text class="dialog-title">添加自定义食物</text>
+
+      <view class="dialog-field">
+        <text class="dialog-label">食物名称</text>
+        <input class="dialog-input" placeholder="例如：麻辣小龙虾" maxlength="10"
+               value="{{newFoodName}}" bindinput="onNewFoodNameInput" />
+      </view>
+
+      <view class="dialog-field">
+        <text class="dialog-label">所属分类</text>
+        <view class="dialog-category-grid">
+          <view class="dialog-cat-item {{newFoodCategory === item.key ? 'dialog-cat-active' : ''}}"
+                wx:for="{{categoryOptions}}" wx:key="key"
+                bindtap="onNewFoodCategorySelect" data-key="{{item.key}}">
+            <text class="dialog-cat-emoji">{{item.emoji}}</text>
+            <text class="dialog-cat-name">{{item.name}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="dialog-actions">
+        <view class="dialog-btn-cancel" bindtap="hideAddFood">取消</view>
+        <view class="dialog-btn-confirm" bindtap="confirmAddFood">添加</view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -86,6 +86,14 @@ const TOOLS = [
         category: 'life',
         description: '收藏与打开 iOS 快捷方式，支持搜索与使用统计',
         path: '/pages/tools/shortcuts/index'
+    },
+    {
+        id: 'food-picker',
+        name: '今天吃什么',
+        icon: 'shop',
+        category: 'life',
+        description: '选择困难症救星！随机帮你决定今天吃什么，支持自定义菜单',
+        path: '/pages/tools/food-picker/index'
     }
 ];
 
