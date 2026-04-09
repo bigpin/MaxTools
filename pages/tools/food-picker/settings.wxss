@@ -99,12 +99,12 @@ page {
 
 .food-list {
   flex: 1;
-  padding: 0 32rpx;
+  padding: 0;
   padding-bottom: 120rpx;
 }
 
 .category-section {
-  margin-bottom: 16rpx;
+  margin: 0 32rpx 16rpx;
   background: #fff;
   border-radius: 20rpx;
   overflow: hidden;
@@ -162,7 +162,7 @@ page {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 28rpx;
+  padding: 20rpx 48rpx 20rpx 28rpx;
   border-bottom: 1rpx solid #FAF4EC;
 }
 
@@ -216,6 +216,7 @@ page {
 /* Footer */
 
 .list-footer {
+  margin: 0 32rpx;
   padding: 32rpx;
   text-align: center;
 }
