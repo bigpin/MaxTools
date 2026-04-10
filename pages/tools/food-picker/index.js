@@ -364,27 +364,42 @@ Page({
     }, 350);
   },
 
-  _jumpToApp(appId, foodName) {
-    wx.setClipboardData({
-      data: foodName,
-      success: function () {
-        wx.hideToast();
-        wx.navigateToMiniProgram({
-          appId: appId,
-          fail: function () {
-            wx.showToast({ title: '已复制「' + foodName + '」，请手动搜索', icon: 'none', duration: 2500 });
-          }
-        });
-      },
+  _jumpToApp(appId, path, foodName) {
+    wx.navigateToMiniProgram({
+      appId: appId,
+      path: path || '',
       fail: function () {
-        wx.navigateToMiniProgram({
-          appId: appId,
+        wx.setClipboardData({
+          data: foodName,
+          success: function () {
+            wx.showToast({ title: '已复制「' + foodName + '」，请手动搜索', icon: 'none', duration: 2500 });
+          },
           fail: function () {
             wx.showToast({ title: '跳转失败，请手动搜索', icon: 'none' });
           }
         });
       }
     });
+  },
+
+  _jumpMeituan(foodName) {
+    wx.setClipboardData({
+      data: foodName,
+      success: function () {
+        wx.hideToast();
+        wx.navigateToMiniProgram({
+          appId: 'wxde8ac0a21135c07d',
+          fail: function () {
+            wx.showToast({ title: '已复制「' + foodName + '」，请手动搜索', icon: 'none', duration: 2500 });
+          }
+        });
+      }
+    });
+  },
+
+  _jumpDianping(foodName) {
+    var path = 'pages/search/search?keyword=' + encodeURIComponent(foodName || '');
+    this._jumpToApp('wx2c348cf579062e56', path, foodName);
   },
 
   onGoNearby() {
@@ -395,9 +410,9 @@ Page({
       itemList: ['美团外卖', '大众点评'],
       success: function (res) {
         if (res.tapIndex === 0) {
-          that._jumpToApp('wxde8ac0a21135c07d', food.name);
+          that._jumpMeituan(food.name);
         } else if (res.tapIndex === 1) {
-          that._jumpToApp('wx2c348cf579062e56', food.name);
+          that._jumpDianping(food.name);
         }
       }
     });
@@ -406,13 +421,13 @@ Page({
   onGoMeituan() {
     var food = this.data.resultFood;
     if (!food) return;
-    this._jumpToApp('wxde8ac0a21135c07d', food.name);
+    this._jumpMeituan(food.name);
   },
 
   onGoDianping() {
     var food = this.data.resultFood;
     if (!food) return;
-    this._jumpToApp('wx2c348cf579062e56', food.name);
+    this._jumpDianping(food.name);
   },
 
   // ==================== Main Action ====================
