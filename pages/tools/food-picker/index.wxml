@@ -55,22 +55,20 @@
     </view>
   </view>
 
-  <!-- Slot Machine Mode -->
+  <!-- Slot Machine Mode（单列） -->
   <view class="slot-area" wx:if="{{mode === 'slot'}}">
     <view class="slot-machine">
       <view class="slot-frame">
-        <view class="slot-column" wx:for="{{slotColumns}}" wx:for-index="colIdx" wx:key="colIdx">
-          <view class="slot-viewport">
-            <view class="slot-strip"
-                  style="transform: translateY({{slotOffsets[colIdx]}}rpx); transition: {{slotTransitions[colIdx]}};">
-              <view class="slot-item" wx:for="{{item}}" wx:for-item="food" wx:key="_uid">
-                <text class="slot-food-text">{{food.name}}</text>
-              </view>
+        <view class="slot-viewport">
+          <view class="slot-strip"
+                style="transform: translateY({{slotOffset}}rpx); transition: {{slotTransition}};">
+            <view class="slot-item" wx:for="{{slotStrip}}" wx:key="_uid">
+              <view class="slot-food-text">{{item.name}}</view>
             </view>
           </view>
-        </view>
-        <view class="slot-highlight-wrap">
-          <view class="slot-highlight" />
+          <view class="slot-highlight-wrap">
+            <view class="slot-highlight" />
+          </view>
         </view>
       </view>
     </view>

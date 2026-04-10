@@ -1,11 +1,17 @@
 const versionUtil = require('../../../utils/version');
 const foodData = require('./data');
 
-// 全部用 rpx，CSS 里 .slot-item 高度 80rpx，.slot-viewport 高度 400rpx
-// translateY 也用 rpx，不做任何 px 换算，彻底消除单位不一致问题
-const SLOT_ITEM_H = 80;   // rpx
-const VIEWPORT_H = 400;   // rpx
-const CENTER_OFFSET = (VIEWPORT_H - SLOT_ITEM_H) / 2; // = 160 rpx
+// 与 index.wxss 中 .slot-viewport / .slot-item 高度保持一致（单列老虎机，加高加大字号）
+const SLOT_ITEM_H = 112;  // rpx
+const VIEWPORT_H = 560;   // rpx，5 行可见
+const CENTER_OFFSET = (VIEWPORT_H - SLOT_ITEM_H) / 2; // = 224 rpx
+// 相对「纯公式」的条带垂直修正（rpx）。小程序里静止首帧与 transform 动画结束后的合成略有差异，
+// 会出现「初始化偏上、停轮偏下」：用两套增量分别微调（仅改条带 translateY，不混用会拉不齐动画起点）。
+const SLOT_ALIGN_BASE_Y = SLOT_ITEM_H - 20;
+// 静止（_initSlotColumns）：偏上则略增大（条带整体下移）
+const SLOT_ALIGN_IDLE_EXTRA_Y = 18;
+// 转动起止与停止（_spinSlots）：偏下则略减小（条带整体上移）
+const SLOT_ALIGN_SPIN_EXTRA_Y = -6;
 const SLOT_COPIES = 40;
 const MIN_SLOT_ROUNDS = 6;
 const CARD_TOTAL = 9;
@@ -22,10 +28,9 @@ Page({
     showResult: false,
     resultAnimClass: '',
 
-    slotColumns: [[], [], []],
-    // 与 _initSlotColumns 一致：第 3 行（index=2）落在视口正中，与高亮区重合
-    slotOffsets: [0, 0, 0],
-    slotTransitions: ['none', 'none', 'none'],
+    slotStrip: [],
+    slotOffset: 0,
+    slotTransition: 'none',
 
     cards: [],
     cardResult: null,
@@ -40,7 +45,7 @@ Page({
   _lastShakeTime: 0,
   _accListener: null,
   _loaded: false,
-  _slotCurIdxs: [2, 2, 2],
+  _slotCurIdx: 2,
 
   onLoad() {
     const sys = wx.getSystemInfoSync();
@@ -139,41 +144,35 @@ Page({
     }
   },
 
-  // ==================== Slot Machine ====================
-  //
-  // 设计原则（参考 lucky-canvas）：
-  // 1. 三列各自独立 shuffle，显示顺序不同
-  // 2. 每列由同一份 base 重复 SLOT_COPIES 次拼成长条带
-  // 3. translateY 全部用 rpx（与 CSS 同单位），公式：offset = CENTER_OFFSET - idx * SLOT_ITEM_H
-  //    当 offset 使得第 idx 项的顶边 = (VIEWPORT_H - SLOT_ITEM_H)/2，即正好在高亮区中央
-  // 4. 先随机抽 winFood，再给每列找到 winFood 在该列周期内的位置并写入
-  // 5. 弹窗结果直接用 winFood（因为三列目标格都已写入 winFood，不存在不一致）
+  // ==================== Slot Machine（单列）====================
+  // 长条由 base 重复 SLOT_COPIES 次；offset = CENTER_OFFSET - idx*SLOT_ITEM_H；中间行 index=2
 
-  _buildSlotColumns() {
+  _buildSlotStrip: function () {
     var pool = this.foodPool || [];
-    if (!pool.length) return [[], [], []];
+    if (!pool.length) return [];
     this._slotPoolLen = pool.length;
-    var cols = [[], [], []];
-    for (var c = 0; c < 3; c++) {
-      var base = pool.slice().sort(function () { return Math.random() - 0.5; });
-      var items = [];
-      for (var r = 0; r < SLOT_COPIES; r++) {
-        for (var i = 0; i < base.length; i++) {
-          items.push({
-            name: base[i].name,
-            id: base[i].id,
-            category: base[i].category,
-            _uid: 'c' + c + 'r' + r + 'i' + i,
-          });
-        }
+    var base = pool.slice().sort(function () { return Math.random() - 0.5; });
+    var items = [];
+    for (var r = 0; r < SLOT_COPIES; r++) {
+      for (var i = 0; i < base.length; i++) {
+        items.push({
+          name: base[i].name,
+          id: base[i].id,
+          category: base[i].category,
+          _uid: 'r' + r + 'i' + i,
+        });
       }
-      cols[c] = items;
     }
-    return cols;
+    return items;
   },
 
-  _idx2offset: function (idx) {
-    return CENTER_OFFSET - idx * SLOT_ITEM_H;
+  // 静止：与高亮对齐（进页、切时段、从翻牌切回老虎机等）
+  _idx2offsetIdle: function (idx) {
+    return CENTER_OFFSET - idx * SLOT_ITEM_H + SLOT_ALIGN_BASE_Y + SLOT_ALIGN_IDLE_EXTRA_Y;
+  },
+  // 转动动画与停轮后：与静止分开微调，避免「停轮偏下」
+  _idx2offsetSpin: function (idx) {
+    return CENTER_OFFSET - idx * SLOT_ITEM_H + SLOT_ALIGN_BASE_Y + SLOT_ALIGN_SPIN_EXTRA_Y;
   },
 
   // 在 colItems 数组中，从 startIdx 往后找第一个 id === foodId 的位置
@@ -185,17 +184,16 @@ Page({
   },
 
   _initSlotColumns: function () {
-    var cols = this._buildSlotColumns();
-    if (!cols[0].length) return;
-    var colLen = cols[0].length;
-    // 视口 400rpx / 行 80rpx → 共 5 行；中间行为 index=2，对应 translateY=0，与高亮区中心对齐
-    var initIdx = Math.min(2, colLen - 1);
-    this._slotCurIdxs = [initIdx, initIdx, initIdx];
-    var off = this._idx2offset(initIdx);
+    var strip = this._buildSlotStrip();
+    if (!strip.length) return;
+    var len = strip.length;
+    var initIdx = Math.min(2, len - 1);
+    this._slotCurIdx = initIdx;
+    var off = this._idx2offsetIdle(initIdx);
     this.setData({
-      slotColumns: cols,
-      slotOffsets: [off, off, off],
-      slotTransitions: ['none', 'none', 'none'],
+      slotStrip: strip,
+      slotOffset: off,
+      slotTransition: 'none',
     });
   },
 
@@ -213,79 +211,65 @@ Page({
     var winFood = pool[Math.floor(Math.random() * pool.length)];
 
     var poolLen = this._slotPoolLen || pool.length;
-    // 每次开转都重新生成三列，避免沿用上次状态造成累计偏移
-    var cols = this._buildSlotColumns();
-    var colLen = cols[0].length;
-    var initIdx = poolLen * 2;
-    var curIdxs = [initIdx, initIdx, initIdx];
-    this._slotCurIdxs = curIdxs.slice();
+    var strip = this._buildSlotStrip();
+    var len = strip.length;
+    var startIdx = Math.min(2, len - 1);
+    this._slotCurIdx = startIdx;
     var minAhead = poolLen * MIN_SLOT_ROUNDS;
-    if (!cols[0].length) { this.setData({ spinning: false }); return; }
-
-    // 2) 每列分别找 winFood 出现的位置（从当前位置 + minAhead 往后找）
-    var targetIdxs = [0, 0, 0];
-    var endOffsets = [0, 0, 0];
-    var transitions = [];
-    var that = this;
-
-    for (var c = 0; c < 3; c++) {
-      var searchFrom = curIdxs[c] + minAhead;
-      var found = this._findFoodAfter(cols[c], winFood.id, searchFrom);
-      if (found === -1) {
-        // 极端情况：后面找不到了，从头搜一下（理论上不会发生，因为 SLOT_COPIES=40）
-        found = this._findFoodAfter(cols[c], winFood.id, 0);
-      }
-      if (found === -1) {
-        this.setData({ spinning: false });
-        wx.showToast({ title: '抽取失败，请重试', icon: 'none' });
-        return;
-      }
-      targetIdxs[c] = found;
-      endOffsets[c] = this._idx2offset(found);
-      var dur = 2.6 + c * 0.55;
-      transitions.push('transform ' + dur + 's cubic-bezier(0.17, 0.67, 0.12, 0.99)');
+    if (!strip.length) {
+      this.setData({ spinning: false });
+      return;
     }
 
-    // 3) 不修改列数据！直接从当前位置开始动画到目标位置
-    var startOffsets = [
-      this._idx2offset(curIdxs[0]),
-      this._idx2offset(curIdxs[1]),
-      this._idx2offset(curIdxs[2]),
-    ];
+    var searchFrom = startIdx + minAhead;
+    var found = this._findFoodAfter(strip, winFood.id, searchFrom);
+    if (found === -1) {
+      found = this._findFoodAfter(strip, winFood.id, 0);
+    }
+    if (found === -1) {
+      this.setData({ spinning: false });
+      wx.showToast({ title: '抽取失败，请重试', icon: 'none' });
+      return;
+    }
+
+    // 起点必须与当前静止一致，用 idle，否则开转时会跳一截
+    var startOffset = this._idx2offsetIdle(startIdx);
+    var endOffset = this._idx2offsetSpin(found);
+    var spinDur = 3.2;
+    var transitionStr = 'transform ' + spinDur + 's cubic-bezier(0.17, 0.67, 0.12, 0.99)';
+    var catInfo = foodData.getCategoryInfo(winFood.category);
+    var that = this;
+
     this.setData({
-      slotColumns: cols,
-      slotOffsets: startOffsets,
-      slotTransitions: ['none', 'none', 'none'],
+      slotStrip: strip,
+      slotOffset: startOffset,
+      slotTransition: 'none',
     }, function () {
       setTimeout(function () {
         that.setData({
-          slotOffsets: endOffsets,
-          slotTransitions: transitions,
+          slotOffset: endOffset,
+          slotTransition: transitionStr,
         });
-      }, 20);
+        setTimeout(function () {
+          that._slotCurIdx = found;
+          var snap = that._idx2offsetSpin(found);
+          that.setData({
+            slotOffset: snap,
+            slotTransition: 'none',
+            spinning: false,
+            resultFood: {
+              name: winFood.name,
+              id: winFood.id,
+              category: winFood.category,
+              categoryName: catInfo.name,
+              categoryEmoji: catInfo.emoji,
+            },
+          }, function () {
+            that._showResultPopup();
+          });
+        }, spinDur * 1000 + 120);
+      }, 50);
     });
-
-    var maxDur = 2.6 + 2 * 0.55;
-
-    // 4) 动画结束后保持当前目标位置，只去掉 transition，避免最后再跳一下
-    setTimeout(function () {
-      that._slotCurIdxs = targetIdxs.slice();
-      var catInfo = foodData.getCategoryInfo(winFood.category);
-      that.setData({
-        slotOffsets: endOffsets,
-        slotTransitions: ['none', 'none', 'none'],
-        spinning: false,
-        resultFood: {
-          name: winFood.name,
-          id: winFood.id,
-          category: winFood.category,
-          categoryName: catInfo.name,
-          categoryEmoji: catInfo.emoji,
-        },
-      }, function () {
-        that._showResultPopup();
-      });
-    }, maxDur * 1000 + 60);
   },
 
   // ==================== Card Flip ====================
@@ -357,11 +341,11 @@ Page({
     var that = this;
     setTimeout(function () {
       if (that.data.mode === 'slot') {
-        that._initSlotColumns();
+        that._spinSlots();
       } else if (that.data.mode === 'card') {
         that._initCards();
       }
-    }, 350);
+    }, 320);
   },
 
   _jumpToApp(appId, path, foodName) {

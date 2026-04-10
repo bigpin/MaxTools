@@ -231,45 +231,42 @@ page {
 .slot-machine {
   position: relative;
   width: 100%;
-  max-width: 620rpx;
+  max-width: 680rpx;
 }
 
 .slot-frame {
   position: relative;
-  display: flex;
-  gap: 16rpx;
   background: linear-gradient(180deg, #FFF5E6 0%, #FFFFFF 40%, #FFFFFF 60%, #FFF5E6 100%);
   border-radius: 28rpx;
-  padding: 20rpx 16rpx;
+  padding: 24rpx 20rpx;
   box-shadow:
     0 8rpx 32rpx rgba(255, 149, 0, 0.12),
     inset 0 2rpx 8rpx rgba(255, 149, 0, 0.06);
   border: 3rpx solid #FFE0B2;
 }
 
-.slot-column {
-  flex: 1;
-  position: relative;
-}
-
 .slot-viewport {
-  height: 400rpx;
+  position: relative;
+  height: 560rpx;
   overflow: hidden;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   background: #FFFAF4;
   box-shadow: inset 0 0 0 2rpx #FFE8CC;
 }
 
 .slot-strip {
+  position: relative;
+  z-index: 3;
   will-change: transform;
 }
 
+/* 盖在视口内，与 translateY 同一参照系；flex 居中 112rpx 高亮，顶边 = (560-112)/2 = 224rpx */
 .slot-highlight-wrap {
   position: absolute;
-  left: 16rpx;
-  right: 16rpx;
-  top: 20rpx;
-  height: 400rpx;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -278,35 +275,41 @@ page {
 }
 
 .slot-item {
-  height: 80rpx;
-  min-height: 80rpx;
+  height: 112rpx;
+  min-height: 112rpx;
+  max-height: 112rpx;
   box-sizing: border-box;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
 }
 
 .slot-food-text {
-  display: block;
   width: 100%;
-  height: 80rpx;
-  font-size: 28rpx;
-  font-weight: 500;
+  max-width: 100%;
+  padding: 0 16rpx;
+  box-sizing: border-box;
+  font-size: 38rpx;
+  font-weight: 600;
   color: #5D4037;
-  line-height: 80rpx;
+  line-height: 1.35;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
-  text-align: center;
 }
 
+/* 用 inset 阴影画框，与 .slot-item 112rpx 行高对齐 */
 .slot-highlight {
   width: 100%;
-  height: 80rpx;
+  height: 112rpx;
   box-sizing: border-box;
-  border-top: 3rpx solid #FF9500;
-  border-bottom: 3rpx solid #FF9500;
+  box-shadow: inset 0 0 0 3rpx #FF9500;
   background: rgba(255, 149, 0, 0.06);
-  border-radius: 8rpx;
+  border-radius: 12rpx;
 }
 
 /* ===== Wheel ===== */
