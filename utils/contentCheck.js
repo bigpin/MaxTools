@@ -58,10 +58,10 @@ async function checkTextWithTip(text, fieldName = '内容') {
 }
 
 /**
- * 提交图片内容安全异步检测
- * 流程：临时上传云存储 → 获取访问URL → 调用 mediaCheckAsync → 延迟清理临时文件
- * mediaCheckAsync 为异步接口，提交后由平台后台完成检测
+ * 图片内容安全同步检测（imgSecCheck）
+ * 流程：临时上传云存储 → 云函数下载 buffer → 调用 imgSecCheck（同步）→ 立即清理临时文件
  * @param {string} filePath - 本地图片临时路径
+ * @returns {Promise<{ safe: boolean, errCode?: number }>}
  */
 async function checkImageSafety(filePath) {
   let fileID = '';
@@ -74,28 +74,26 @@ async function checkImageSafety(filePath) {
     });
     fileID = uploadRes.fileID;
 
-    const urlRes = await wx.cloud.getTempFileURL({
-      fileList: [fileID]
-    });
-    const tempFileURL = urlRes.fileList[0].tempFileURL;
-
-    await wx.cloud.callFunction({
+    const res = await wx.cloud.callFunction({
       name: 'contentSecCheck',
       data: {
-        action: 'checkImage',
-        mediaUrl: tempFileURL,
-        mediaType: 2
+        action: 'checkImageSync',
+        fileID,
+        contentType: 'image/jpeg'
       }
     });
 
-    console.log('图片安全检测已提交');
+    if (res && res.result && res.result.success && res.result.safe === false) {
+      return { safe: false, errCode: res.result.errCode };
+    }
+    return { safe: true, errCode: res && res.result && res.result.errCode };
   } catch (err) {
     console.error('图片安全检测提交失败:', err);
+    // 检测异常降级放行
+    return { safe: true };
   } finally {
     if (fileID) {
-      setTimeout(() => {
-        wx.cloud.deleteFile({ fileList: [fileID] }).catch(() => {});
-      }, 60000);
+      wx.cloud.deleteFile({ fileList: [fileID] }).catch(() => {});
     }
   }
 }

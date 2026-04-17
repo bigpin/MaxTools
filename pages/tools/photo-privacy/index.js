@@ -33,7 +33,7 @@ Page({
             count: 1,
             mediaType: ['image'],
             sourceType: ['album', 'camera'],
-            success: (res) => {
+            success: async (res) => {
                 const tempFilePath = res.tempFiles[0].tempFilePath;
                 this.setData({
                     imagePath: tempFilePath,
@@ -49,8 +49,17 @@ Page({
                     }
                 });
                 
-                // 提交图片内容安全异步检测
-                checkImageSafety(tempFilePath);
+                // 同步内容安全检测：不通过则提示并清空图片
+                const sec = await checkImageSafety(tempFilePath);
+                if (sec && sec.safe === false) {
+                    wx.showModal({
+                        title: '提示',
+                        content: '图片内容检测未通过，请更换图片后重试',
+                        showCancel: false,
+                    });
+                    this.reset();
+                    return;
+                }
 
                 // 获取图片信息和 EXIF
                 this.analyzeImage(tempFilePath);

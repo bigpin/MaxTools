@@ -36,14 +36,14 @@ const TOOLS = [
         description: '实时查询和转换多种货币汇率',
         path: '/pages/tools/currency-exchange/index'
     },
-    {
-        id: 'photo-privacy',
-        name: '照片隐私清除',
-        icon: 'image',
-        category: 'image',
-        description: '去除照片中的位置、时间等隐私信息',
-        path: '/pages/tools/photo-privacy/index'
-    },
+    // {
+    //     id: 'photo-privacy',
+    //     name: '照片隐私清除',
+    //     icon: 'image',
+    //     category: 'image',
+    //     description: '去除照片中的位置、时间等隐私信息',
+    //     path: '/pages/tools/photo-privacy/index'
+    // },
     {
         id: 'unit-converter',
         name: '单位换算器',

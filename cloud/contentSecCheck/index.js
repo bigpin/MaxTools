@@ -5,7 +5,7 @@ cloud.init({
 });
 
 exports.main = async (event) => {
-  const { action, content, mediaUrl, mediaType } = event;
+  const { action, content, mediaUrl, mediaType, fileID, contentType } = event;
   const { OPENID } = cloud.getWXContext();
 
   if (!OPENID) {
@@ -53,7 +53,36 @@ exports.main = async (event) => {
       };
     }
 
-    return { success: false, error: '未知的 action，支持: checkText, checkImage' };
+    // 图片同步检测（imgSecCheck）：可直接返回是否违规
+    if (action === 'checkImageSync') {
+      if (!fileID) {
+        return { success: false, safe: false, error: '缺少 fileID 参数' };
+      }
+
+      const downloadRes = await cloud.downloadFile({ fileID });
+      const buffer = downloadRes && downloadRes.fileContent;
+      if (!buffer) {
+        return { success: false, safe: false, error: '下载图片失败' };
+      }
+
+      const result = await cloud.openapi.security.imgSecCheck({
+        media: {
+          contentType: contentType || 'image/jpeg',
+          value: buffer
+        }
+      });
+
+      // imgSecCheck：errCode=0 表示正常；87014 表示违规（其余错误码按异常处理）
+      const errCode = result && (result.errCode ?? result.errcode);
+      const safe = errCode === 0;
+      return {
+        success: true,
+        safe,
+        errCode
+      };
+    }
+
+    return { success: false, error: '未知的 action，支持: checkText, checkImage, checkImageSync' };
   } catch (err) {
     console.error('内容安全检测失败:', err);
     return {
