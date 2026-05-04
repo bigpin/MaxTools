@@ -1,3 +1,5 @@
 .DS_Store
 cloud/checkStockSignals/node_modules
 cloud/checkStockSignals/package-lock.json
+.claude/
+assets/Thumbs.db
