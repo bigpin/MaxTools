@@ -1,6 +1,7 @@
 // pages/tools/anniversary/add.js
 const dateUtils = require('../../../utils/dateUtils');
 const versionUtil = require('../../../utils/version');
+const { checkTextWithTip } = require('../../../utils/contentCheck');
 
 // 纪念日类型配置
 const TYPE_CONFIG = {
@@ -241,6 +242,14 @@ Page({
 
     try {
       const formData = this.data.formData;
+
+      const textToCheck = [formData.name, formData.note].filter(Boolean).join(' ');
+      const isSafe = await checkTextWithTip(textToCheck, '纪念日内容');
+      if (!isSafe) {
+        this.setData({ saving: false });
+        return;
+      }
+
       const now = Date.now();
 
       const anniversaryData = {

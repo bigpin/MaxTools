@@ -21,7 +21,32 @@
   </view>
 
   <view class="stats-bar" wx:if="{{displayList.length > 0}}">
-    <text class="stats-text">共 {{displayList.length}} 个 · 总使用 {{totalClicks}} 次</text>
+    <view class="stats-bar-row">
+      <text class="stats-text">共 {{displayList.length}} 个 · 总使用 {{totalClicks}} 次</text>
+      <view class="sort-wrap">
+        <view class="sort-label-wrap">
+          <text class="sort-label">排序</text>
+        </view>
+        <view class="sort-divider" />
+        <view class="sort-btns">
+          <view
+            class="sort-chip {{sortBy === 'clicks' ? 'sort-chip-active' : ''}}"
+            bindtap="onSortBy"
+            data-sort="clicks"
+          >使用次数</view>
+          <view
+            class="sort-chip {{sortBy === 'time' ? 'sort-chip-active' : ''}}"
+            bindtap="onSortBy"
+            data-sort="time"
+          >最新</view>
+          <view
+            class="sort-chip {{sortBy === 'name' ? 'sort-chip-active' : ''}}"
+            bindtap="onSortBy"
+            data-sort="name"
+          >名称</view>
+        </view>
+      </view>
+    </view>
   </view>
 
   <view wx:if="{{loading}}" class="loading-wrap">

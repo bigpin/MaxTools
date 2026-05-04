@@ -1,0 +1,11 @@
+{
+  "navigationStyle": "custom",
+  "backgroundColor": "#FFF8F0",
+  "usingComponents": {
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-switch": "tdesign-miniprogram/switch/switch",
+    "t-input": "tdesign-miniprogram/input/input",
+    "t-dialog": "tdesign-miniprogram/dialog/dialog",
+    "t-button": "tdesign-miniprogram/button/button"
+  }
+}

@@ -13,6 +13,8 @@
     "pages/tools/anniversary/add",
     "pages/tools/data-insights/index",
     "pages/tools/shortcuts/index",
+    "pages/tools/food-picker/index",
+    "pages/tools/food-picker/settings",
     "pages/detail/detail"
   ],
   "window": {

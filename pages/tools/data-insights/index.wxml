@@ -118,21 +118,31 @@
             </view>
             <view class="card-header-right">
               <view class="stock-summary-card">
-                <view class="summary-item">
+                <view class="summary-item summary-item-fixed">
                   <text class="summary-label">整体胜率</text>
                   <text class="summary-value success-rate-highlight">{{stock.overall_success_rate || 0}}%</text>
                 </view>
                 <view class="summary-divider"></view>
-                <view class="summary-item">
+                <view class="summary-item summary-item-fixed">
                   <text class="summary-label">特征数</text>
-                  <text class="summary-value">{{stock.signals.length}}</text>
+                  <text class="summary-value feature-count-value">{{stock.signals.length}}</text>
+                </view>
+                <view class="summary-divider" wx:if="{{stock.tradeHeat}}"></view>
+                <view class="summary-item-heat-row" wx:if="{{stock.tradeHeat}}">
+                  <text class="summary-label heat-label-side">交易热度</text>
+                  <view class="summary-value-block-heat">
+                    <text class="summary-value trade-heat-value" style="color: {{stock.tradeHeat.hasData ? stock.tradeHeat.tagColor : '#8c8c8c'}};">{{stock.tradeHeat.scoreText}}</text>
+                    <text wx:if="{{stock.tradeHeat.tagText}}" class="trade-heat-inline-tag" style="color: {{stock.tradeHeat.tagColor}};">{{stock.tradeHeat.tagText}}</text>
+                  </view>
                 </view>
               </view>
-              <t-icon 
-                name="{{expandedCards[stock.stock_code + '_' + item.date] ? 'chevron-up' : 'chevron-down'}}" 
-                size="32rpx" 
-                color="#999" 
-              />
+              <view class="card-expand-icon">
+                <t-icon 
+                  name="{{expandedCards[stock.stock_code + '_' + item.date] ? 'chevron-up' : 'chevron-down'}}" 
+                  size="32rpx" 
+                  color="#999" 
+                />
+              </view>
             </view>
           </view>
 
@@ -261,21 +271,31 @@
               </view>
               <view class="card-header-right">
                 <view class="stock-summary-card">
-                  <view class="summary-item">
+                  <view class="summary-item summary-item-fixed">
                     <text class="summary-label">整体胜率</text>
                     <text class="summary-value success-rate-highlight">{{stock.overall_success_rate || 0}}%</text>
                   </view>
                   <view class="summary-divider"></view>
-                  <view class="summary-item">
+                  <view class="summary-item summary-item-fixed">
                     <text class="summary-label">特征数</text>
-                    <text class="summary-value">{{stock.signals.length}}</text>
+                    <text class="summary-value feature-count-value">{{stock.signals.length}}</text>
+                  </view>
+                  <view class="summary-divider" wx:if="{{stock.tradeHeat}}"></view>
+                  <view class="summary-item-heat-row" wx:if="{{stock.tradeHeat}}">
+                    <text class="summary-label heat-label-side">交易热度</text>
+                    <view class="summary-value-block-heat">
+                      <text class="summary-value trade-heat-value" style="color: {{stock.tradeHeat.hasData ? stock.tradeHeat.tagColor : '#8c8c8c'}};">{{stock.tradeHeat.scoreText}}</text>
+                      <text wx:if="{{stock.tradeHeat.tagText}}" class="trade-heat-inline-tag" style="color: {{stock.tradeHeat.tagColor}};">{{stock.tradeHeat.tagText}}</text>
+                    </view>
                   </view>
                 </view>
-                <t-icon 
-                  name="{{expandedCards[stock.stock_code + '_' + dateItem.date] ? 'chevron-up' : 'chevron-down'}}" 
-                  size="32rpx" 
-                  color="#999" 
-                />
+                <view class="card-expand-icon">
+                  <t-icon 
+                    name="{{expandedCards[stock.stock_code + '_' + dateItem.date] ? 'chevron-up' : 'chevron-down'}}" 
+                    size="32rpx" 
+                    color="#999" 
+                  />
+                </view>
               </view>
             </view>
 

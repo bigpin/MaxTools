@@ -47,14 +47,14 @@ const TOOLS = [
         description: '实时查询和转换多种货币汇率',
         path: '/pages/tools/currency-exchange/index'
     },
-    {
-        id: 'photo-privacy',
-        name: '照片隐私清除',
-        icon: 'image',
-        category: 'image',
-        description: '去除照片中的位置、时间等隐私信息',
-        path: '/pages/tools/photo-privacy/index'
-    },
+    // {
+    //     id: 'photo-privacy',
+    //     name: '照片隐私清除',
+    //     icon: 'image',
+    //     category: 'image',
+    //     description: '去除照片中的位置、时间等隐私信息',
+    //     path: '/pages/tools/photo-privacy/index'
+    // },
     {
         id: 'unit-converter',
         name: '单位换算器',
@@ -86,6 +86,14 @@ const TOOLS = [
         category: 'life',
         description: '收藏与打开 iOS 快捷方式，支持搜索与使用统计',
         path: '/pages/tools/shortcuts/index'
+    },
+    {
+        id: 'food-picker',
+        name: '今天吃什么',
+        icon: 'rice-filled',
+        category: 'life',
+        description: '选择困难症救星！随机帮你决定今天吃什么，支持自定义菜单',
+        path: '/pages/tools/food-picker/index'
     }
 ];
 

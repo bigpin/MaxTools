@@ -1,0 +1,145 @@
+<view class="page">
+  <!-- Status Bar -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px;" />
+
+  <!-- Header -->
+  <view class="header">
+    <view class="header-left">
+      <view class="back-btn" bindtap="goBack">
+        <t-icon name="chevron-left" size="48rpx" color="#fff" />
+      </view>
+      <text class="header-title">今天吃什么</text>
+    </view>
+  </view>
+
+  <!-- Period Badge + Settings Entry -->
+  <view class="period-bar">
+    <view class="period-badge" bindtap="onPeriodTap">
+      <text class="period-icon">{{periodIcon}}</text>
+      <text class="period-text">{{periodLabel}}</text>
+      <t-icon name="chevron-down" size="28rpx" color="#E65100" />
+    </view>
+    <view class="period-right">
+      <text class="pool-count">{{foodPool.length}} 种美食</text>
+      <view class="settings-entry" bindtap="goSettings">
+        <t-icon name="setting" size="36rpx" color="#FF9500" />
+      </view>
+    </view>
+  </view>
+
+  <!-- Period Picker Popup -->
+  <view class="period-picker-mask {{showPeriodPicker ? 'period-picker-mask-show' : ''}}"
+        wx:if="{{showPeriodPicker}}" bindtap="closePeriodPicker">
+    <view class="period-picker" catchtap="">
+      <view class="period-picker-item {{currentPeriod === item.key ? 'period-picker-active' : ''}}"
+            wx:for="{{periodList}}" wx:key="key"
+            bindtap="onSelectPeriod" data-key="{{item.key}}">
+        <text class="period-picker-icon">{{item.icon}}</text>
+        <text class="period-picker-label">{{item.label}}</text>
+        <t-icon wx:if="{{currentPeriod === item.key}}" name="check" size="32rpx" color="#FF9500" />
+      </view>
+    </view>
+  </view>
+
+  <!-- Mode Switch -->
+  <view class="mode-switch">
+    <view class="mode-tab {{mode === 'slot' ? 'mode-tab-active' : ''}}"
+          bindtap="switchMode" data-mode="slot">
+      <t-icon name="play-circle" size="32rpx" />
+      <text>老虎机</text>
+    </view>
+    <view class="mode-tab {{mode === 'card' ? 'mode-tab-active' : ''}}"
+          bindtap="switchMode" data-mode="card">
+      <t-icon name="view-module" size="32rpx" />
+      <text>翻牌子</text>
+    </view>
+  </view>
+
+  <!-- Slot Machine Mode（单列） -->
+  <view class="slot-area" wx:if="{{mode === 'slot'}}">
+    <view class="slot-machine">
+      <view class="slot-frame">
+        <view class="slot-viewport">
+          <view class="slot-strip"
+                style="transform: translateY({{slotOffset}}rpx); transition: {{slotTransition}};">
+            <view class="slot-item" wx:for="{{slotStrip}}" wx:key="_uid">
+              <view class="slot-food-text">{{item.name}}</view>
+            </view>
+          </view>
+          <view class="slot-highlight-wrap">
+            <view class="slot-highlight" />
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Card Flip Mode -->
+  <view class="card-area" wx:if="{{mode === 'card'}}">
+    <view class="card-grid">
+      <view class="card-cell" wx:for="{{cards}}" wx:key="index"
+            bindtap="onCardTap" data-index="{{item.index}}">
+        <view class="card-inner {{item.flipped ? 'card-flipped' : ''}}">
+          <view class="card-front">
+            <text class="card-question">?</text>
+          </view>
+          <view class="card-back">
+            <text class="card-food-name">{{item.food.name}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Main Action Button -->
+  <view class="action-area">
+    <view class="action-btn {{spinning ? 'action-btn-disabled' : ''}}"
+          bindtap="onMainAction">
+      <text class="action-btn-text">{{mode === 'slot' ? '就吃这个！' : '重新洗牌'}}</text>
+    </view>
+    <text class="shake-hint">摇一摇手机也可以哦~</text>
+  </view>
+
+  <!-- Result Popup -->
+  <view class="result-mask {{showResult ? 'result-mask-visible' : ''}}"
+        wx:if="{{showResult}}" bindtap="closeResult">
+    <view class="result-card {{resultAnimClass}}" catchtap="">
+      <!-- Decorative top -->
+      <view class="result-deco">
+        <view class="result-deco-circle" />
+      </view>
+      <view class="result-emoji">{{resultFood.categoryEmoji}}</view>
+      <view class="result-category">{{resultFood.categoryName}}</view>
+      <view class="result-name">{{resultFood.name}}</view>
+      <view class="result-tip">今天就吃这个吧！</view>
+
+      <!-- App Jump Area -->
+      <view class="result-apps">
+        <view class="app-btn app-btn-meituan" bindtap="onGoMeituan">
+          <view class="app-icon-circle meituan-bg">
+            <text class="app-icon-text">美</text>
+          </view>
+          <text class="app-label">美团</text>
+        </view>
+        <view class="app-btn app-btn-dianping" bindtap="onGoDianping">
+          <view class="app-icon-circle dianping-bg">
+            <text class="app-icon-text">评</text>
+          </view>
+          <text class="app-label">大众点评</text>
+        </view>
+      </view>
+
+      <!-- Action Buttons -->
+      <view class="result-actions">
+        <view class="result-btn-primary" bindtap="onGoNearby">
+          <t-icon name="location" size="36rpx" color="#fff" />
+          <text>去附近看看</text>
+        </view>
+        <view class="result-btn-secondary" bindtap="onTryAgain">
+          <t-icon name="refresh" size="36rpx" color="#FF9500" />
+          <text>再换一个</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

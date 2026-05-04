@@ -1,0 +1,365 @@
+page {
+  background-color: #FFF8F0;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Header ===== */
+
+.status-bar {
+  width: 100%;
+  background: linear-gradient(135deg, #FF9500 0%, #FF6B35 100%);
+  flex-shrink: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 30rpx;
+  background: linear-gradient(135deg, #FF9500 0%, #FF6B35 100%);
+  position: relative;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  top: -40rpx;
+  right: -40rpx;
+  width: 200rpx;
+  height: 200rpx;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  z-index: 1;
+}
+
+.back-btn {
+  margin-right: 8rpx;
+}
+
+.back-btn:active {
+  opacity: 0.6;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #fff;
+  margin-left: 10rpx;
+}
+
+/* ===== Quick Actions ===== */
+
+.quick-actions {
+  display: flex;
+  align-items: center;
+  margin: 24rpx 32rpx 16rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 24rpx 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(255, 149, 0, 0.08);
+}
+
+.quick-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.quick-btn:active {
+  opacity: 0.6;
+}
+
+.quick-btn-text {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #5D4037;
+}
+
+.quick-divider {
+  width: 1rpx;
+  height: 40rpx;
+  background: #F0E6D8;
+  flex-shrink: 0;
+}
+
+/* ===== Food List ===== */
+
+.food-list {
+  flex: 1;
+  padding: 0;
+  padding-bottom: 120rpx;
+}
+
+.category-section {
+  margin: 0 32rpx 16rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.03);
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 28rpx;
+}
+
+.category-header:active {
+  background: #FFF8F0;
+}
+
+.category-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.category-arrow {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+.category-emoji {
+  font-size: 36rpx;
+}
+
+.category-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #3E2723;
+}
+
+.category-count {
+  font-size: 22rpx;
+  color: #BFA07A;
+  background: #FFF3E0;
+  padding: 4rpx 12rpx;
+  border-radius: 10rpx;
+}
+
+/* Food Items */
+
+.food-items {
+  border-top: 1rpx solid #F5EDE3;
+}
+
+.food-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 48rpx 20rpx 28rpx;
+  border-bottom: 1rpx solid #FAF4EC;
+}
+
+.food-item:last-child {
+  border-bottom: none;
+}
+
+.food-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.food-name {
+  font-size: 28rpx;
+  color: #5D4037;
+  font-weight: 500;
+}
+
+.food-disabled {
+  color: #C9A882;
+  text-decoration: line-through;
+}
+
+.custom-badge {
+  font-size: 20rpx;
+  color: #FF9500;
+  background: #FFF3E0;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
+  flex-shrink: 0;
+}
+
+.food-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex-shrink: 0;
+}
+
+.delete-btn {
+  padding: 8rpx;
+}
+
+.delete-btn:active {
+  opacity: 0.6;
+}
+
+/* Footer */
+
+.list-footer {
+  margin: 0 32rpx;
+  padding: 32rpx;
+  text-align: center;
+}
+
+.footer-text {
+  font-size: 24rpx;
+  color: #C9A882;
+}
+
+/* ===== Add Food Dialog ===== */
+
+.dialog-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.dialog-mask-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dialog-card {
+  width: 85%;
+  max-width: 620rpx;
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 40rpx 36rpx 32rpx;
+  box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.15);
+}
+
+.dialog-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #3E2723;
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+
+.dialog-field {
+  margin-bottom: 28rpx;
+}
+
+.dialog-label {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #5D4037;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+.dialog-input {
+  width: 100%;
+  height: 80rpx;
+  background: #FFF8F0;
+  border: 2rpx solid #FFE0B2;
+  border-radius: 16rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  color: #3E2723;
+  box-sizing: border-box;
+}
+
+.dialog-category-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.dialog-cat-item {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 12rpx;
+  background: #F5F0EB;
+  transition: all 0.2s ease;
+}
+
+.dialog-cat-item:active {
+  opacity: 0.7;
+}
+
+.dialog-cat-active {
+  background: #FF9500;
+}
+
+.dialog-cat-active .dialog-cat-name {
+  color: #fff;
+}
+
+.dialog-cat-emoji {
+  font-size: 28rpx;
+}
+
+.dialog-cat-name {
+  font-size: 24rpx;
+  color: #5D4037;
+  font-weight: 500;
+}
+
+/* Dialog Actions */
+
+.dialog-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 8rpx;
+}
+
+.dialog-btn-cancel,
+.dialog-btn-confirm {
+  flex: 1;
+  height: 84rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 42rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.dialog-btn-cancel {
+  background: #F5EDE3;
+  color: #9E8E7E;
+}
+
+.dialog-btn-cancel:active {
+  background: #EBE0D3;
+}
+
+.dialog-btn-confirm {
+  background: linear-gradient(135deg, #FF9500 0%, #FF6B35 100%);
+  color: #fff;
+  box-shadow: 0 4rpx 16rpx rgba(255, 107, 53, 0.3);
+}
+
+.dialog-btn-confirm:active {
+  transform: scale(0.97);
+}
