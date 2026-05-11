@@ -111,6 +111,22 @@ Page({
         this.saveCurrentOptions();
     },
 
+    onPullDownRefresh() {
+        // 清除缓存，重新获取数据
+        this.setData({ exchangeCache: {} });
+        try {
+            const keys = wx.getStorageInfoSync().keys || [];
+            keys.filter(k => k.startsWith('exchange_')).forEach(k => wx.removeStorageSync(k));
+        } catch (e) {}
+
+        const { fromCode, toCode } = this.data;
+        this.exchangeChanged({
+            detail: { from_code: fromCode, to_code: toCode }
+        }).finally(() => {
+            wx.stopPullDownRefresh();
+        });
+    },
+
     // 保存当前选项
     saveCurrentOptions() {
         try {
