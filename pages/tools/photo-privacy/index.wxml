@@ -72,10 +72,6 @@
         <t-icon name="download" size="40rpx" color="#fff" />
         <text>保存到相册</text>
       </view>
-      <view class="action-btn secondary" bindtap="shareImage">
-        <t-icon name="share" size="40rpx" color="#2d6a7a" />
-        <text>分享给好友</text>
-      </view>
     </view>
 
     <!-- 继续处理 -->

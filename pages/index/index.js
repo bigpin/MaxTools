@@ -47,14 +47,14 @@ const TOOLS = [
         description: '实时查询和转换多种货币汇率',
         path: '/pages/tools/currency-exchange/index'
     },
-    // {
-    //     id: 'photo-privacy',
-    //     name: '照片隐私清除',
-    //     icon: 'image',
-    //     category: 'image',
-    //     description: '去除照片中的位置、时间等隐私信息',
-    //     path: '/pages/tools/photo-privacy/index'
-    // },
+    {
+        id: 'photo-privacy',
+        name: '照片隐私清除',
+        icon: 'image',
+        category: 'image',
+        description: '去除照片中的位置、时间等隐私信息',
+        path: '/pages/tools/photo-privacy/index'
+    },
     {
         id: 'unit-converter',
         name: '单位换算器',
@@ -98,7 +98,7 @@ const TOOLS = [
 ];
 
 // 需要开关控制的工具ID列表（审核敏感功能）
-const SWITCH_CONTROLLED_TOOLS = ['data-insights'];
+const SWITCH_CONTROLLED_TOOLS = ['data-insights', 'photo-privacy'];
 
 // 当前存在的工具 id 列表（用于过滤最近使用/收藏中的无效项）
 const VALID_TOOL_IDS = TOOLS.map(t => t.id);
@@ -166,11 +166,11 @@ Page({
                 console.warn('获取版本号失败:', e);
             }
 
-            // if (envVersion === 'develop') {
-            //     console.log('开发版环境，显示所有工具');
-            //     this.data.disabledTools = [];
-            //     return;
-            // }
+            if (envVersion === 'develop') {
+                console.log('开发版环境，显示所有工具');
+                this.data.disabledTools = [];
+                return;
+            }
 
             if (envVersion === 'trial') {
                 console.log('体验版环境，敏感功能一律禁用');

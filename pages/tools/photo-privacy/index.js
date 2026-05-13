@@ -5,6 +5,8 @@ const { parseExif, formatGPSCoordinate, formatDateTime } = require('../../../uti
 const versionUtil = require('../../../utils/version');
 const { checkImageSafety } = require('../../../utils/contentCheck');
 
+const db = wx.cloud.database();
+
 Page({
     data: {
         imagePath: '',
@@ -23,8 +25,60 @@ Page({
     },
 
     onLoad() {
+        // 体验版：不读开关，直接跳转首页
+        try {
+            const envVersion = (wx.getAccountInfoSync() || {}).miniProgram?.envVersion || 'develop';
+            if (envVersion === 'trial') {
+                wx.redirectTo({ url: '/pages/index/index' });
+                return;
+            }
+        } catch (e) {}
         versionUtil.setNavigationBarTitleWithVersion('隐私清除器');
-        console.log('照片隐私清除工具加载');
+        // 正式版再校验云端开关
+        this.checkToolSwitchAndRedirect().then((allowed) => {
+            if (!allowed) return;
+        });
+    },
+
+    onShow() {
+        try {
+            const envVersion = (wx.getAccountInfoSync() || {}).miniProgram?.envVersion || 'develop';
+            if (envVersion === 'trial') {
+                wx.redirectTo({ url: '/pages/index/index' });
+                return;
+            }
+        } catch (e) {}
+    },
+
+    /**
+     * 校验工具开关：仅开发版可访问；体验版一律重定向；正式版按云端「已开启」判断
+     * @returns {Promise<boolean>} 是否允许继续留在本页
+     */
+    async checkToolSwitchAndRedirect() {
+        try {
+            let envVersion = 'develop';
+            try {
+                const accountInfo = wx.getAccountInfoSync();
+                envVersion = accountInfo.miniProgram.envVersion || 'develop';
+            } catch (e) {}
+            if (envVersion === 'develop') return true;
+            if (envVersion === 'trial') {
+                wx.redirectTo({ url: '/pages/index/index' });
+                return false;
+            }
+            const res = await db.collection('tools_switch').where({ tool_id: 'photo-privacy' }).get();
+            const list = res.data || [];
+            // 正式版：仅当存在「已启用且未设审核版本」的记录时才允许进入
+            const allowed = list.some((s) => s.enabled !== false && !s.review_version);
+            if (!allowed) {
+                wx.redirectTo({ url: '/pages/index/index' });
+                return false;
+            }
+            return true;
+        } catch (e) {
+            wx.redirectTo({ url: '/pages/index/index' });
+            return false;
+        }
     },
 
     // 选择图片
@@ -398,36 +452,6 @@ Page({
                 current: this.data.processedPath
             });
         }
-    },
-
-    // 分享图片给好友
-    shareImage() {
-        if (!this.data.processedPath) {
-            wx.showToast({
-                title: '请先处理图片',
-                icon: 'none'
-            });
-            return;
-        }
-
-        wx.shareFileMessage({
-            filePath: this.data.processedPath,
-            fileName: '安全图片.jpg',
-            success: () => {
-                wx.showToast({
-                    title: '分享成功',
-                    icon: 'success'
-                });
-            },
-            fail: (err) => {
-                console.error('分享失败:', err);
-                // 如果 shareFileMessage 不支持，尝试使用 previewImage 让用户手动分享
-                wx.previewImage({
-                    urls: [this.data.processedPath],
-                    current: this.data.processedPath
-                });
-            }
-        });
     },
 
     // 重新选择

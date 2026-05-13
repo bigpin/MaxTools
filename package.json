@@ -8,8 +8,7 @@
   },
   "dependencies": {
     "@antv/f2": "^5.14.0",
-    "qrcode": "^1.5.3",
-    "tdesign-miniprogram": "^1.12.2"
+"tdesign-miniprogram": "^1.12.2"
   },
   "keywords": [],
   "author": "",
