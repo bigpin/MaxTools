@@ -4,18 +4,26 @@
     "pages/index/index",
     "pages/recent/index",
     "pages/my/index",
-    "pages/tools/tax-calculator/index",
-    "pages/tools/pension-calculator/index",
-    "pages/tools/currency-exchange/index",
-    "pages/tools/photo-privacy/index",
-    "pages/tools/unit-converter/index",
-    "pages/tools/anniversary/index",
-    "pages/tools/anniversary/add",
-    "pages/tools/data-insights/index",
-    "pages/tools/shortcuts/index",
-    "pages/tools/food-picker/index",
-    "pages/tools/food-picker/settings",
     "pages/detail/detail"
+  ],
+  "subPackages": [
+    {
+      "root": "pages/tools",
+      "name": "tools",
+      "pages": [
+        "tax-calculator/index",
+        "pension-calculator/index",
+        "currency-exchange/index",
+        "photo-privacy/index",
+        "unit-converter/index",
+        "anniversary/index",
+        "anniversary/add",
+        "data-insights/index",
+        "shortcuts/index",
+        "food-picker/index",
+        "food-picker/settings"
+      ]
+    }
   ],
   "window": {
     "backgroundTextStyle": "light",
