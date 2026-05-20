@@ -1,5 +1,5 @@
 // pages/tools/anniversary/index.js
-const dateUtils = require('../../../utils/dateUtils');
+const dateUtils = require('../utils/dateUtils');
 const versionUtil = require('../../../utils/version');
 
 // 纪念日类型配置

@@ -1,7 +1,7 @@
 // pages/tools/anniversary/add.js
-const dateUtils = require('../../../utils/dateUtils');
+const dateUtils = require('../utils/dateUtils');
 const versionUtil = require('../../../utils/version');
-const { checkTextWithTip } = require('../../../utils/contentCheck');
+const { checkTextWithTip } = require('../utils/contentCheck');
 
 // 纪念日类型配置
 const TYPE_CONFIG = {

@@ -1,9 +1,9 @@
 // pages/tools/photo-privacy/index.js
 // 照片隐私清除工具 - 去除图片EXIF信息
 
-const { parseExif, formatGPSCoordinate, formatDateTime } = require('../../../utils/exif-parser');
+const { parseExif, formatGPSCoordinate, formatDateTime } = require('../utils/exif-parser');
 const versionUtil = require('../../../utils/version');
-const { checkImageSafety } = require('../../../utils/contentCheck');
+const { checkImageSafety } = require('../utils/contentCheck');
 
 const db = wx.cloud.database();
 

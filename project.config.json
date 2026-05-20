@@ -25,11 +25,16 @@
             "disablePlugins": [],
             "outputPath": ""
         },
-        "packNpmRelationList": [],
+        "packNpmRelationList": [
+            {
+                "packageJsonPath": "package.json",
+                "miniprogramNpmDistDir": "pages/tools/miniprogram_npm"
+            }
+        ],
         "ignoreUploadUnusedFiles": true,
         "condition": true,
         "compileWorklet": false,
-        "packNpmManually": false,
+        "packNpmManually": true,
         "minifyWXSS": true,
         "minifyWXML": true,
         "localPlugins": false,

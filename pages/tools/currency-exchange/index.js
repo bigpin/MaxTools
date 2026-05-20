@@ -1,5 +1,5 @@
 // pages/tools/currency-exchange/index.js
-const { CONFIG } = require('../../../utils/config');
+const { CONFIG } = require('../utils/config');
 const versionUtil = require('../../../utils/version');
 // F2 库引入（如果未安装则使用原生 canvas）
 let F2 = null;
