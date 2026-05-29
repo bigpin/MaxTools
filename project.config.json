@@ -56,7 +56,48 @@
     "condition": {},
     "libVersion": "2.20.2",
     "packOptions": {
-        "ignore": [],
+        "ignore": [
+            {
+                "type": "folder",
+                "value": ".git"
+            },
+            {
+                "type": "folder",
+                "value": ".claude"
+            },
+            {
+                "type": "folder",
+                "value": ".wolf"
+            },
+            {
+                "type": "folder",
+                "value": "node_modules"
+            },
+            {
+                "type": "folder",
+                "value": "cloud/checkStockSignals/node_modules"
+            },
+            {
+                "type": "folder",
+                "value": "cloud/checkStockSignals/miniprogram_npm"
+            },
+            {
+                "type": "folder",
+                "value": "pages/home"
+            },
+            {
+                "type": "suffix",
+                "value": ".map"
+            },
+            {
+                "type": "suffix",
+                "value": ".d.ts"
+            },
+            {
+                "type": "file",
+                "value": "miniprogram_npm/tdesign-miniprogram/.wechatide.ib.json"
+            }
+        ],
         "include": []
     },
     "projectArchitecture": "multiPlatform",
