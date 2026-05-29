@@ -36,6 +36,34 @@
     </view>
   </view>
 
+  <!-- 信号分析看板引导 -->
+  <view class="timeline-guide-section">
+    <view class="timeline-guide-header" bindtap="openTimelineView">
+      <view class="timeline-guide-header-left">
+        <t-icon name="dashboard" size="32rpx" color="#d32f2f" />
+        <text class="timeline-guide-title">信号分析看板</text>
+      </view>
+      <t-icon name="chevron-right" size="28rpx" color="#d32f2f" />
+    </view>
+    <view class="timeline-guide-body">
+      <view class="timeline-guide-desc-row">
+        <t-icon name="info-circle" size="24rpx" color="#d32f2f" />
+        <text class="timeline-guide-desc">时间轴视图看信号走势，收益矩阵找最优止盈止损策略，数据列表精确筛选</text>
+      </view>
+      <view class="timeline-guide-tags">
+        <text class="timeline-guide-tag">时间轴</text>
+        <text class="timeline-guide-tag">收益矩阵</text>
+        <text class="timeline-guide-tag">数据列表</text>
+      </view>
+      <view class="timeline-guide-footer">
+        <view class="timeline-guide-desktop-hint">
+          <t-icon name="computer" size="24rpx" color="#999" />
+          <text class="timeline-guide-hint-text">电脑浏览器打开效果更佳，点击复制链接</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
   <!-- 日期选择器 -->
   <t-picker
     visible="{{datePickerVisible}}"
