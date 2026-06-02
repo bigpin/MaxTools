@@ -56,7 +56,7 @@ async function sendNotification(openid, stockCount, reportDate, stockList) {
         character_string16: { value: stockCodes }, // 代码：股票代码列表（character_string类型只能包含数字和字母）
         time7: { value: reportDate } // 统计日期
       },
-      miniprogramState: 'developer' // 开发版使用developer，正式版改为formal
+      miniprogramState: 'formal'
     });
     
     console.log(`发送成功 - ${openid}:`, result);

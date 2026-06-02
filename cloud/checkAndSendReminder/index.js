@@ -73,7 +73,7 @@ async function sendMessage(openid, item, daysLeft, templateId) {
         thing3: { value: `提前${daysLeft}天提醒` },
         thing4: { value: item.note || '请记得这个重要日子' }
       },
-      miniprogramState: 'developer' // 正式发布改为 'formal'
+      miniprogramState: 'formal'
     });
     
     console.log(`发送成功 - ${item.name} (${daysLeft}天):`, result);

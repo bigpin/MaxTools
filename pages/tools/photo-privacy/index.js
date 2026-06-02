@@ -4,8 +4,7 @@
 const { parseExif, formatGPSCoordinate, formatDateTime } = require('../utils/exif-parser');
 const versionUtil = require('../../../utils/version');
 const { checkImageSafety } = require('../utils/contentCheck');
-
-const db = wx.cloud.database();
+const { checkToolSwitchAndRedirect } = require('../utils/toolSwitch');
 
 Page({
     data: {
@@ -35,51 +34,14 @@ Page({
         } catch (e) {}
         versionUtil.setNavigationBarTitleWithVersion('隐私清除器');
         // 正式版再校验云端开关
-        this.checkToolSwitchAndRedirect().then((allowed) => {
+        checkToolSwitchAndRedirect('photo-privacy').then((allowed) => {
             if (!allowed) return;
         });
     },
 
     onShow() {
-        try {
-            const envVersion = (wx.getAccountInfoSync() || {}).miniProgram?.envVersion || 'develop';
-            if (envVersion === 'trial') {
-                wx.redirectTo({ url: '/pages/index/index' });
-                return;
-            }
-        } catch (e) {}
     },
 
-    /**
-     * 校验工具开关：仅开发版可访问；体验版一律重定向；正式版按云端「已开启」判断
-     * @returns {Promise<boolean>} 是否允许继续留在本页
-     */
-    async checkToolSwitchAndRedirect() {
-        try {
-            let envVersion = 'develop';
-            try {
-                const accountInfo = wx.getAccountInfoSync();
-                envVersion = accountInfo.miniProgram.envVersion || 'develop';
-            } catch (e) {}
-            if (envVersion === 'develop') return true;
-            if (envVersion === 'trial') {
-                wx.redirectTo({ url: '/pages/index/index' });
-                return false;
-            }
-            const res = await db.collection('tools_switch').where({ tool_id: 'photo-privacy' }).get();
-            const list = res.data || [];
-            // 正式版：仅当存在「已启用且未设审核版本」的记录时才允许进入
-            const allowed = list.some((s) => s.enabled !== false && !s.review_version);
-            if (!allowed) {
-                wx.redirectTo({ url: '/pages/index/index' });
-                return false;
-            }
-            return true;
-        } catch (e) {
-            wx.redirectTo({ url: '/pages/index/index' });
-            return false;
-        }
-    },
 
     // 选择图片
     chooseImage() {

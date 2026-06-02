@@ -683,7 +683,7 @@ Page({
             dateRangeType: type,
             queryDate: '',
             isHistorical: true,
-            chartData: [] // 清除之前的图表数据
+            chartLoading: true // 显示图表加载状态，不清空 chartData 以保留 canvas DOM
         });
         
         // 保存选项
@@ -707,7 +707,6 @@ Page({
                 // 缓存24小时
                 if ((now - cacheTime) < 24 * 60 * 60 * 1000) {
                     this.processHistoricalData(storedData.data, from_code, to_code);
-                    this.setData({ chartLoading: false });
                     return;
                 }
             }
@@ -812,15 +811,16 @@ Page({
             
             this.setData({
                 chartData: chartData,
+                chartLoading: false,
                 resultText: `历史汇率数据（${dates.length}天）`,
                 convertedAmount: convertedAmount,
                 // 默认显示最新汇率
                 selectedHistoryRate: rateStr,
                 selectedHistoryDate: dateStr
+            }, () => {
+                // 在 setData 回调中渲染图表，确保 canvas 已在 DOM 中
+                this.renderHistoryChart(chartData, from_code, to_code);
             });
-            
-            // 使用 ECharts 绘制图表
-            this.renderHistoryChart(chartData, from_code, to_code);
         }
     },
 

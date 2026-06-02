@@ -2,83 +2,22 @@
 // 我的页面
 
 const storage = require('../../utils/storage');
+const { TOOLS, TOOL_CATEGORY_NAMES, SWITCH_CONTROLLED_TOOLS, VALID_TOOL_IDS, TOOL_MAP } = require('../../utils/tools');
 
-const TOOL_CATEGORY_NAMES = {
-    'finance': '财务工具',
-    'image': '图片工具',
-    'life': '生活工具',
-    'other': '其他工具'
-};
-
-// 工具配置列表（需要与主页保持一致）
-const TOOLS = [
-    {
-        id: 'tax-calculator',
-        name: '个税计算器',
-        icon: 'money',
-        category: 'finance',
-        description: '计算个人所得税，支持多个月份累计计算',
-        path: '/pages/tools/tax-calculator/index'
-    },
-    {
-        id: 'pension-calculator',
-        name: '年终奖计算器',
-        icon: 'wallet',
-        category: 'finance',
-        description: '计算年终奖缴税金额',
-        path: '/pages/tools/pension-calculator/index'
-    },
-    {
-        id: 'currency-exchange',
-        name: '汇率转换',
-        icon: 'swap',
-        category: 'finance',
-        description: '实时查询和转换多种货币汇率',
-        path: '/pages/tools/currency-exchange/index'
-    },
-    // {
-    //     id: 'photo-privacy',
-    //     name: '照片隐私清除',
-    //     icon: 'image',
-    //     category: 'image',
-    //     description: '去除照片中的位置、时间等隐私信息',
-    //     path: '/pages/tools/photo-privacy/index'
-    // },
-    {
-        id: 'unit-converter',
-        name: '单位换算器',
-        icon: 'swap',
-        category: 'life',
-        description: '支持长度、面积、体积、重量、温度、时间、速度等常用单位互转',
-        path: '/pages/tools/unit-converter/index'
-    },
-    {
-        id: 'anniversary',
-        name: '纪念日管家',
-        icon: 'calendar',
-        category: 'life',
-        description: '记录生日、纪念日、还款日等重要日期，自动计算倒计时，支持订阅消息提醒',
-        path: '/pages/tools/anniversary/index'
-    },
-    {
-        id: 'data-insights',
-        name: '数据洞察',
-        icon: 'chart',
-        category: 'finance',
-        description: '多维数据分析与趋势洞察',
-        path: '/pages/tools/data-insights/index'
-    }
-];
+const db = wx.cloud.database();
 
 Page({
     data: {
         favoriteTools: [],
         favorites: [],
-        categoryNames: TOOL_CATEGORY_NAMES
+        categoryNames: TOOL_CATEGORY_NAMES,
+        disabledTools: []
     },
 
     onLoad() {
-        this.loadFavoriteTools();
+        this.loadToolsSwitch().then(() => {
+            this.loadFavoriteTools();
+        });
     },
 
     onShow() {
@@ -86,10 +25,54 @@ Page({
         this.loadFavoriteTools();
     },
 
+    /**
+     * 从云数据库加载工具开关配置
+     */
+    async loadToolsSwitch() {
+        try {
+            let envVersion = 'develop';
+            try {
+                const accountInfo = wx.getAccountInfoSync();
+                envVersion = accountInfo.miniProgram.envVersion || 'develop';
+            } catch (e) {}
+
+            if (envVersion === 'develop') {
+                this.setData({ disabledTools: [] });
+                return;
+            }
+
+            if (envVersion === 'trial') {
+                this.setData({ disabledTools: [...SWITCH_CONTROLLED_TOOLS] });
+                return;
+            }
+
+            let disabledTools = [...SWITCH_CONTROLLED_TOOLS];
+            try {
+                const res = await db.collection('tools_switch').get();
+                const switches = res.data || [];
+                const allowedIds = switches
+                    .filter(s => SWITCH_CONTROLLED_TOOLS.includes(s.tool_id) && s.enabled !== false && !s.review_version)
+                    .map(s => s.tool_id);
+                disabledTools = SWITCH_CONTROLLED_TOOLS.filter(id => !allowedIds.includes(id));
+            } catch (e) {
+                console.warn('读取工具开关失败，保持默认禁用:', e);
+            }
+            this.setData({ disabledTools });
+        } catch (error) {
+            console.warn('加载工具开关失败:', error);
+            this.setData({ disabledTools: [...SWITCH_CONTROLLED_TOOLS] });
+        }
+    },
+
     // 加载收藏的工具列表
     loadFavoriteTools() {
-        const favorites = storage.getFavorites();
-        const favoriteTools = TOOLS.filter(tool => favorites.indexOf(tool.id) > -1);
+        // 清理无效收藏
+        const favorites = storage.cleanInvalidFavorites(VALID_TOOL_IDS);
+        const disabledTools = this.data.disabledTools || [];
+        const availableTools = TOOLS.filter(tool => !disabledTools.includes(tool.id));
+        const favoriteTools = availableTools
+            .filter(tool => favorites.indexOf(tool.id) > -1)
+            .map(tool => ({ ...tool, isFavorite: true }));
         this.setData({
             favoriteTools: favoriteTools,
             favorites: favorites
@@ -100,7 +83,7 @@ Page({
     onToolTap(e) {
         const index = e.currentTarget.dataset.index;
         const tool = this.data.favoriteTools[index];
-        
+
         if (!tool || !tool.path) {
             wx.showToast({
                 title: '工具数据无效',
@@ -108,10 +91,19 @@ Page({
             });
             return;
         }
-        
-        // 记录使用时间
-        storage.saveRecentUse(tool.id, tool);
-        
+
+        // 始终从最新 TOOLS 定义取数据
+        const latestDef = TOOL_MAP[tool.id] || tool;
+        const toolInfo = {
+            id: latestDef.id,
+            name: latestDef.name,
+            icon: latestDef.icon,
+            category: latestDef.category,
+            description: latestDef.description,
+            path: latestDef.path
+        };
+        storage.saveRecentUse(tool.id, toolInfo);
+
         wx.navigateTo({
             url: tool.path,
             fail: (err) => {
@@ -129,10 +121,10 @@ Page({
     onFavoriteTap(e) {
         const toolId = e.currentTarget.dataset.toolId;
         const isFavorite = storage.toggleFavorite(toolId);
-        
+
         // 更新收藏列表
         this.loadFavoriteTools();
-        
+
         wx.showToast({
             title: isFavorite ? '已收藏' : '已取消收藏',
             icon: 'none',
@@ -143,21 +135,15 @@ Page({
     // Tab点击
     onTabItemTap(e) {
         const tabValue = e.currentTarget.dataset.tab;
-        
-        // 如果点击的是当前Tab，不处理
+
         if (tabValue === 'my') {
             return;
         }
-        
-        // 跳转到对应页面
+
         if (tabValue === 'tools') {
-            wx.redirectTo({
-                url: '/pages/index/index'
-            });
+            wx.reLaunch({ url: '/pages/index/index' });
         } else if (tabValue === 'recent') {
-            wx.redirectTo({
-                url: '/pages/recent/index'
-            });
+            wx.reLaunch({ url: '/pages/recent/index' });
         }
     }
 });

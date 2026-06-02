@@ -2,23 +2,22 @@
 // 最近使用页面
 
 const storage = require('../../utils/storage');
+const { TOOLS, TOOL_CATEGORY_NAMES, SWITCH_CONTROLLED_TOOLS, VALID_TOOL_IDS, TOOL_MAP } = require('../../utils/tools');
 
-const TOOL_CATEGORY_NAMES = {
-    'finance': '财务工具',
-    'image': '图片工具',
-    'life': '生活工具',
-    'other': '其他工具'
-};
+const db = wx.cloud.database();
 
 Page({
     data: {
         recentUses: [],
         favorites: [],
-        categoryNames: TOOL_CATEGORY_NAMES
+        categoryNames: TOOL_CATEGORY_NAMES,
+        disabledTools: []
     },
 
     onLoad() {
-        this.loadData();
+        this.loadToolsSwitch().then(() => {
+            this.loadData();
+        });
     },
 
     onShow() {
@@ -26,17 +25,66 @@ Page({
         this.loadData();
     },
 
+    /**
+     * 从云数据库加载工具开关配置
+     */
+    async loadToolsSwitch() {
+        try {
+            let envVersion = 'develop';
+            try {
+                const accountInfo = wx.getAccountInfoSync();
+                envVersion = accountInfo.miniProgram.envVersion || 'develop';
+            } catch (e) {}
+
+            if (envVersion === 'develop') {
+                this.setData({ disabledTools: [] });
+                return;
+            }
+
+            if (envVersion === 'trial') {
+                this.setData({ disabledTools: [...SWITCH_CONTROLLED_TOOLS] });
+                return;
+            }
+
+            // 正式版：默认全部敏感工具禁用，只有云端明确「已开启」才加入列表
+            let disabledTools = [...SWITCH_CONTROLLED_TOOLS];
+            try {
+                const res = await db.collection('tools_switch').get();
+                const switches = res.data || [];
+                const allowedIds = switches
+                    .filter(s => SWITCH_CONTROLLED_TOOLS.includes(s.tool_id) && s.enabled !== false && !s.review_version)
+                    .map(s => s.tool_id);
+                disabledTools = SWITCH_CONTROLLED_TOOLS.filter(id => !allowedIds.includes(id));
+            } catch (e) {
+                console.warn('读取工具开关失败，保持默认禁用:', e);
+            }
+            this.setData({ disabledTools });
+        } catch (error) {
+            console.warn('加载工具开关失败:', error);
+            this.setData({ disabledTools: [...SWITCH_CONTROLLED_TOOLS] });
+        }
+    },
+
     // 加载数据
     loadData() {
-        const recentUses = storage.getRecentUses();
-        const favorites = storage.getFavorites();
-        
-        // 格式化时间
-        const formattedUses = recentUses.map(item => ({
-            ...item,
-            relativeTime: this.formatRelativeTime(item.useTime)
-        }));
-        
+        // 清理无效工具记录
+        const favorites = storage.cleanInvalidFavorites(VALID_TOOL_IDS);
+        const recentUses = storage.cleanInvalidRecentUses(VALID_TOOL_IDS);
+        const disabledTools = this.data.disabledTools || [];
+
+        // 格式化时间，过滤被禁用的工具
+        const formattedUses = recentUses
+            .filter(item => VALID_TOOL_IDS.includes(item.toolId) && !disabledTools.includes(item.toolId))
+            .map(item => {
+                const latest = TOOL_MAP[item.toolId];
+                return {
+                    ...item,
+                    toolInfo: latest ? { ...latest } : item.toolInfo,
+                    relativeTime: storage.formatRelativeTime(item.useTime),
+                    isFavorite: favorites.indexOf(item.toolId) > -1
+                };
+            });
+
         this.setData({
             recentUses: formattedUses,
             favorites: favorites
@@ -47,7 +95,7 @@ Page({
     onToolTap(e) {
         const index = e.currentTarget.dataset.index;
         const tool = this.data.recentUses[index]?.toolInfo;
-        
+
         if (!tool || !tool.path) {
             wx.showToast({
                 title: '工具数据无效',
@@ -55,10 +103,19 @@ Page({
             });
             return;
         }
-        
-        // 记录使用时间
-        storage.saveRecentUse(tool.id, tool);
-        
+
+        // 始终从最新 TOOLS 定义取数据
+        const latestDef = TOOL_MAP[tool.id] || tool;
+        const toolInfo = {
+            id: latestDef.id,
+            name: latestDef.name,
+            icon: latestDef.icon,
+            category: latestDef.category,
+            description: latestDef.description,
+            path: latestDef.path
+        };
+        storage.saveRecentUse(tool.id, toolInfo);
+
         wx.navigateTo({
             url: tool.path,
             fail: (err) => {
@@ -76,13 +133,13 @@ Page({
     onFavoriteTap(e) {
         const toolId = e.currentTarget.dataset.toolId;
         const isFavorite = storage.toggleFavorite(toolId);
-        
+
         // 更新收藏列表
         const favorites = storage.getFavorites();
         this.setData({
             favorites: favorites
         });
-        
+
         wx.showToast({
             title: isFavorite ? '已收藏' : '已取消收藏',
             icon: 'none',
@@ -93,45 +150,15 @@ Page({
     // Tab点击
     onTabItemTap(e) {
         const tabValue = e.currentTarget.dataset.tab;
-        
-        // 如果点击的是当前Tab，不处理
+
         if (tabValue === 'recent') {
             return;
         }
-        
-        // 跳转到对应页面
-        if (tabValue === 'tools') {
-            wx.redirectTo({
-                url: '/pages/index/index'
-            });
-        } else if (tabValue === 'my') {
-            wx.redirectTo({
-                url: '/pages/my/index'
-            });
-        }
-    },
 
-    // 格式化相对时间
-    formatRelativeTime(timestamp) {
-        const now = Date.now();
-        const diff = now - timestamp;
-        const minutes = Math.floor(diff / 60000);
-        const hours = Math.floor(diff / 3600000);
-        const days = Math.floor(diff / 86400000);
-        
-        if (minutes < 1) {
-            return '刚刚';
-        } else if (minutes < 60) {
-            return `${minutes}分钟前`;
-        } else if (hours < 24) {
-            return `${hours}小时前`;
-        } else if (days < 7) {
-            return `${days}天前`;
-        } else {
-            const date = new Date(timestamp);
-            const month = date.getMonth() + 1;
-            const day = date.getDate();
-            return `${month}月${day}日`;
+        if (tabValue === 'tools') {
+            wx.reLaunch({ url: '/pages/index/index' });
+        } else if (tabValue === 'my') {
+            wx.reLaunch({ url: '/pages/my/index' });
         }
     }
 });

@@ -2,110 +2,10 @@
 // 工具分类首页
 
 const storage = require('../../utils/storage');
+const { TOOLS, TOOL_CATEGORY_NAMES, SWITCH_CONTROLLED_TOOLS, VALID_TOOL_IDS, TOOL_MAP } = require('../../utils/tools');
 
 // 云数据库
 const db = wx.cloud.database();
-
-// 工具分类定义
-const TOOL_CATEGORIES = {
-    FINANCE: 'finance',
-    IMAGE: 'image',
-    LIFE: 'life',
-    OTHER: 'other'
-};
-
-const TOOL_CATEGORY_NAMES = {
-    'finance': '财务工具',
-    'image': '图片工具',
-    'life': '生活工具',
-    'other': '其他工具'
-};
-
-// 工具配置列表
-const TOOLS = [
-    {
-        id: 'tax-calculator',
-        name: '个税计算器',
-        icon: 'money',
-        category: 'finance',
-        description: '计算个人所得税，支持多个月份累计计算',
-        path: '/pages/tools/tax-calculator/index'
-    },
-    {
-        id: 'pension-calculator',
-        name: '年终奖计算器',
-        icon: 'wallet',
-        category: 'finance',
-        description: '计算年终奖缴税金额',
-        path: '/pages/tools/pension-calculator/index'
-    },
-    {
-        id: 'currency-exchange',
-        name: '汇率转换',
-        icon: 'swap',
-        category: 'finance',
-        description: '实时查询和转换多种货币汇率',
-        path: '/pages/tools/currency-exchange/index'
-    },
-    {
-        id: 'photo-privacy',
-        name: '照片隐私清除',
-        icon: 'image',
-        category: 'image',
-        description: '去除照片中的位置、时间等隐私信息',
-        path: '/pages/tools/photo-privacy/index'
-    },
-    {
-        id: 'unit-converter',
-        name: '单位换算器',
-        icon: 'swap',
-        category: 'life',
-        description: '支持长度、面积、体积、重量、温度、时间、速度等常用单位互转',
-        path: '/pages/tools/unit-converter/index'
-    },
-    {
-        id: 'anniversary',
-        name: '纪念日管家',
-        icon: 'calendar',
-        category: 'life',
-        description: '记录生日、纪念日、还款日等重要日期，自动计算倒计时，支持订阅消息提醒',
-        path: '/pages/tools/anniversary/index'
-    },
-    {
-        id: 'data-insights',
-        name: '数据洞察',
-        icon: 'chart',
-        category: 'finance',
-        description: '多维数据分析与趋势洞察',
-        path: '/pages/tools/data-insights/index'
-    },
-    {
-        id: 'shortcuts',
-        name: 'iOS 快捷方式',
-        icon: 'link',
-        category: 'life',
-        description: '收藏与打开 iOS 快捷方式，支持搜索与使用统计',
-        path: '/pages/tools/shortcuts/index'
-    },
-    {
-        id: 'food-picker',
-        name: '今天吃什么',
-        icon: 'rice-filled',
-        category: 'life',
-        description: '选择困难症救星！随机帮你决定今天吃什么，支持自定义菜单',
-        path: '/pages/tools/food-picker/index'
-    }
-];
-
-// 需要开关控制的工具ID列表（审核敏感功能）
-const SWITCH_CONTROLLED_TOOLS = ['data-insights', 'photo-privacy'];
-
-// 当前存在的工具 id 列表（用于过滤最近使用/收藏中的无效项）
-const VALID_TOOL_IDS = TOOLS.map(t => t.id);
-
-// 工具 id → 最新定义的映射，用于同步最近使用中的过期快照
-const TOOL_MAP = {};
-TOOLS.forEach(t => { TOOL_MAP[t.id] = t; });
 
 Page({
     data: {
@@ -166,20 +66,23 @@ Page({
                 console.warn('获取版本号失败:', e);
             }
 
-            if (envVersion === 'develop') {
+        let disabledTools;
+        if (envVersion === 'develop') {
                 console.log('开发版环境，显示所有工具');
-                this.data.disabledTools = [];
+                disabledTools = [];
+                this.setData({ disabledTools });
                 return;
             }
 
             if (envVersion === 'trial') {
                 console.log('体验版环境，敏感功能一律禁用');
-                this.data.disabledTools = [...SWITCH_CONTROLLED_TOOLS];
+                disabledTools = [...SWITCH_CONTROLLED_TOOLS];
+                this.setData({ disabledTools });
                 return;
             }
 
             // 正式版：默认全部敏感工具禁用，只有云端明确「已开启」才加入列表
-            let disabledTools = [...SWITCH_CONTROLLED_TOOLS];
+            disabledTools = [...SWITCH_CONTROLLED_TOOLS];
             try {
                 const res = await db.collection('tools_switch').get();
                 const switches = res.data || [];
@@ -191,10 +94,10 @@ Page({
             } catch (e) {
                 console.warn('读取工具开关失败，保持默认禁用:', e);
             }
-            this.data.disabledTools = disabledTools;
+            this.setData({ disabledTools });
         } catch (error) {
             console.warn('加载工具开关失败，使用默认禁用配置:', error);
-            this.data.disabledTools = [...SWITCH_CONTROLLED_TOOLS];
+            this.setData({ disabledTools: [...SWITCH_CONTROLLED_TOOLS] });
         }
     },
 
@@ -246,7 +149,7 @@ Page({
                 return {
                     ...item,
                     toolInfo: latest ? { ...latest } : item.toolInfo,
-                    relativeTime: this.formatRelativeTime(item.useTime),
+                    relativeTime: storage.formatRelativeTime(item.useTime),
                     isFavorite: favorites.indexOf(item.toolId) > -1
                 };
             });
@@ -309,7 +212,7 @@ Page({
                     return {
                         ...item,
                         toolInfo: latest ? { ...latest } : item.toolInfo,
-                        relativeTime: this.formatRelativeTime(item.useTime),
+                        relativeTime: storage.formatRelativeTime(item.useTime),
                         isFavorite: favorites.indexOf(item.toolId) > -1
                     };
                 });
@@ -562,7 +465,7 @@ Page({
                 return {
                     ...item,
                     toolInfo: latest ? { ...latest } : item.toolInfo,
-                    relativeTime: this.formatRelativeTime(item.useTime),
+                    relativeTime: storage.formatRelativeTime(item.useTime),
                     isFavorite: favorites.indexOf(item.toolId) > -1
                 };
             });
@@ -589,26 +492,4 @@ Page({
     },
 
     // 格式化相对时间
-    formatRelativeTime(timestamp) {
-        const now = Date.now();
-        const diff = now - timestamp;
-        const minutes = Math.floor(diff / 60000);
-        const hours = Math.floor(diff / 3600000);
-        const days = Math.floor(diff / 86400000);
-        
-        if (minutes < 1) {
-            return '刚刚';
-        } else if (minutes < 60) {
-            return `${minutes}分钟前`;
-        } else if (hours < 24) {
-            return `${hours}小时前`;
-        } else if (days < 7) {
-            return `${days}天前`;
-        } else {
-            const date = new Date(timestamp);
-            const month = date.getMonth() + 1;
-            const day = date.getDate();
-            return `${month}月${day}日`;
-        }
-    }
 });

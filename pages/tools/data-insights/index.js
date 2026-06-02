@@ -1,6 +1,7 @@
 // pages/tools/data-insights/index.js
 const db = wx.cloud.database();
 const versionUtil = require('../../../utils/version');
+const { checkToolSwitchAndRedirect } = require('../utils/toolSwitch');
 
 // 信号类型中文映射
 const SIGNAL_TYPE_MAP = {
@@ -78,52 +79,14 @@ Page({
     } catch (e) {}
     versionUtil.setNavigationBarTitleWithVersion('数据洞察');
     // 正式版再校验云端开关
-    this.checkToolSwitchAndRedirect().then((allowed) => {
+    checkToolSwitchAndRedirect('data-insights').then((allowed) => {
       if (!allowed) return;
       this.loadSignals();
       this.checkSubscribeStatus();
     });
   },
 
-  /**
-   * 校验工具开关：仅开发版可访问；体验版一律重定向；正式版按云端「已开启」判断
-   * @returns {Promise<boolean>} 是否允许继续留在本页
-   */
-  async checkToolSwitchAndRedirect() {
-    try {
-      let envVersion = 'develop';
-      try {
-        const accountInfo = wx.getAccountInfoSync();
-        envVersion = accountInfo.miniProgram.envVersion || 'develop';
-      } catch (e) {}
-      if (envVersion === 'develop') return true;
-      if (envVersion === 'trial') {
-        wx.redirectTo({ url: '/pages/index/index' });
-        return false;
-      }
-      const res = await db.collection('tools_switch').where({ tool_id: 'data-insights' }).get();
-      const list = res.data || [];
-      // 正式版：仅当存在「已启用且未设审核版本」的记录时才允许进入
-      const allowed = list.some((s) => s.enabled !== false && !s.review_version);
-      if (!allowed) {
-        wx.redirectTo({ url: '/pages/index/index' });
-        return false;
-      }
-      return true;
-    } catch (e) {
-      wx.redirectTo({ url: '/pages/index/index' });
-      return false;
-    }
-  },
-
   onShow() {
-    try {
-      const envVersion = (wx.getAccountInfoSync() || {}).miniProgram?.envVersion || 'develop';
-      if (envVersion === 'trial') {
-        wx.redirectTo({ url: '/pages/index/index' });
-        return;
-      }
-    } catch (e) {}
     // 静默请求订阅授权（积累授权次数）
     this.silentRequestSubscribe();
   },

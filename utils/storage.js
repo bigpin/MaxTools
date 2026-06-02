@@ -173,6 +173,34 @@ function cleanInvalidFavorites(validToolIds) {
   }
 }
 
+/**
+ * 格式化相对时间
+ * @param {number} timestamp - 时间戳
+ * @returns {string} 相对时间描述
+ */
+function formatRelativeTime(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) {
+        return '刚刚';
+    } else if (minutes < 60) {
+        return `${minutes}分钟前`;
+    } else if (hours < 24) {
+        return `${hours}小时前`;
+    } else if (days < 7) {
+        return `${days}天前`;
+    } else {
+        const date = new Date(timestamp);
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        return `${month}月${day}日`;
+    }
+}
+
 module.exports = {
   saveRecentUse,
   getRecentUses,
@@ -182,5 +210,6 @@ module.exports = {
   clearRecentUses,
   clearFavorites,
   cleanInvalidRecentUses,
-  cleanInvalidFavorites
+  cleanInvalidFavorites,
+  formatRelativeTime
 };

@@ -81,7 +81,7 @@ exports.main = async (event, context) => {
       templateId: templateId,
       page: 'pages/tools/anniversary/index',
       data: data,
-      miniprogramState: 'developer' // 开发版使用developer，正式版改为formal
+      miniprogramState: 'formal'
     });
 
     console.log('订阅消息发送成功:', JSON.stringify(result, null, 2));
