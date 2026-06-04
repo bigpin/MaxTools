@@ -1,7 +1,7 @@
 declare const _default: {
     status: {
         type: StringConstructor;
-        value: "loading" | "active" | "expired" | "scanned";
+        value: "loading" | "expired" | "scanned" | "active";
     };
     locale: {
         type: ObjectConstructor;

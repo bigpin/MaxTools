@@ -1,11 +1,9 @@
-/// <reference types="miniprogram-api-typings" />
-/// <reference types="miniprogram-api-typings" />
 import { TdPopoverProps } from './type';
 import { SuperComponent } from '../common/src/index';
 export interface PopoverProps extends TdPopoverProps {
 }
 export default class Popover extends SuperComponent {
-    behaviors: WechatMiniprogram.Behavior.BehaviorIdentifier<WechatMiniprogram.Component.DataOption, WechatMiniprogram.Component.PropertyOption, WechatMiniprogram.Component.MethodOption, WechatMiniprogram.Component.BehaviorOption>[];
+    behaviors: string[];
     externalClasses: string[];
     options: {
         multipleSlots: boolean;

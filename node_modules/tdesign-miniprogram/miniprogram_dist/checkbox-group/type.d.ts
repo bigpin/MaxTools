@@ -1,3 +1,4 @@
+import { CheckboxIconType } from '../checkbox/index';
 import { KeysType } from '../common/common';
 export interface TdCheckboxGroupProps<T = CheckboxGroupValue> {
     borderless?: {
@@ -42,6 +43,7 @@ export interface CheckboxOptionObj {
     label?: string;
     value?: string | number;
     disabled?: boolean;
+    icon?: CheckboxIconType;
     checkAll?: true;
 }
 export declare type CheckboxGroupValue = Array<string | number | boolean>;

@@ -1,8 +1,4 @@
 export interface TdAttachmentsProps {
-    addable?: {
-        type: BooleanConstructor;
-        value?: boolean;
-    };
     imageViewer?: {
         type: BooleanConstructor;
         value?: boolean;

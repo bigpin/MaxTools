@@ -65,7 +65,7 @@ export default class Stepper extends SuperComponent {
     methods: {
         isDisabled(type: any): boolean;
         getLen(num: number): number;
-        add(a: number, b: number): number;
+        add(a: number, b: number): string | number;
         format(value: any): string;
         setValue(value: any): void;
         minusValue(): boolean;

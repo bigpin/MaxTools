@@ -1,5 +1,6 @@
 import { SuperComponent } from '../../../components/common/src/index';
 export default class ChatSender extends SuperComponent {
+    behaviors: string[];
     options: {
         multipleSlots: boolean;
     };
@@ -52,7 +53,6 @@ export default class ChatSender extends SuperComponent {
         handleUploadClick(e: any): void;
         handleFileClick(e: any): void;
         handleFileRemove(e: any): void;
-        handleFileAdd(): void;
         handleImageUpload(e: any): Promise<void>;
         handleWechatFileUpload(e: any): Promise<void>;
         handleUploadEntryClick(e: any): void;

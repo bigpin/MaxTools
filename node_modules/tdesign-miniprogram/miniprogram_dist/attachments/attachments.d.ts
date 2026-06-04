@@ -1,17 +1,16 @@
-import { SuperComponent, ComponentsOptionsType } from '../../../components/common/src/index';
+import { SuperComponent } from '../../../components/common/src/index';
 import { TdAttachmentsProps } from './type';
 export interface AttachmentsProps extends TdAttachmentsProps {
 }
 export default class Attachments extends SuperComponent {
-    options: ComponentsOptionsType;
+    behaviors: string[];
+    options: {
+        multipleSlots: boolean;
+    };
     properties: {
         inChat: {
             type: BooleanConstructor;
             value: boolean;
-        };
-        addable?: {
-            type: BooleanConstructor;
-            value?: boolean;
         };
         imageViewer?: {
             type: BooleanConstructor;

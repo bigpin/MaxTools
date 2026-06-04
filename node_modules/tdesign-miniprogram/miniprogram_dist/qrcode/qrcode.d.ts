@@ -1,22 +1,14 @@
 import { SuperComponent } from '../common/src/index';
 export default class QRCode extends SuperComponent {
+    behaviors: string[];
     externalClasses: string[];
     options: {
         multipleSlots: boolean;
-        virtualHost: boolean;
     };
     properties: {
         statusRender: {
             type: BooleanConstructor;
             value: boolean;
-        };
-        style: {
-            type: StringConstructor;
-            value: string;
-        };
-        customStyle: {
-            type: StringConstructor;
-            value: string;
         };
         bgColor?: {
             type: StringConstructor;

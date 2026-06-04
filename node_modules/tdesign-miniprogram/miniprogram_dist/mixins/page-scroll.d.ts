@@ -1,2 +1,2 @@
-declare const _default: (funcName?: string) => WechatMiniprogram.Behavior.BehaviorIdentifier<WechatMiniprogram.Component.DataOption, WechatMiniprogram.Component.PropertyOption, WechatMiniprogram.Component.MethodOption, WechatMiniprogram.Component.BehaviorOption>;
+declare const _default: (funcName?: string) => string;
 export default _default;

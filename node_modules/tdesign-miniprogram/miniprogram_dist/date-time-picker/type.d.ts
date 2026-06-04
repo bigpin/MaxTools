@@ -12,10 +12,6 @@ export interface TdDateTimePickerProps {
         type: StringConstructor;
         value?: string;
     };
-    customLocale?: {
-        type: StringConstructor;
-        value?: string;
-    };
     end?: {
         type: null;
         value?: string | number;

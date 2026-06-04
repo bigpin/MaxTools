@@ -1,5 +1,3 @@
-/// <reference types="miniprogram-api-typings" />
-/// <reference types="miniprogram-api-typings" />
 import { RelationsOptions, SuperComponent } from '../common/src/index';
 export default class Indexes extends SuperComponent {
     externalClasses: string[];
@@ -18,7 +16,7 @@ export default class Indexes extends SuperComponent {
         showTips: boolean;
     };
     relations: RelationsOptions;
-    behaviors: WechatMiniprogram.Behavior.BehaviorIdentifier<WechatMiniprogram.Component.DataOption, WechatMiniprogram.Component.PropertyOption, WechatMiniprogram.Component.MethodOption, WechatMiniprogram.Component.BehaviorOption>[];
+    behaviors: string[];
     timer: any;
     groupTop: any[];
     sidebar: any;

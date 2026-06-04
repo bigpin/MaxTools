@@ -10,7 +10,7 @@ export default class QRCode extends SuperComponent {
         };
         status: {
             type: StringConstructor;
-            value: "loading" | "active" | "expired" | "scanned";
+            value: "loading" | "expired" | "scanned" | "active";
         };
         locale: {
             type: ObjectConstructor;

@@ -39,9 +39,11 @@ export default class PullDownRefresh extends SuperComponent {
         barHeight(val: any): void;
         maxBarHeight(v: any): void;
         loadingBarHeight(v: any): void;
+        globalConfig(): void;
     };
     methods: {
         updateDistanceTop(): void;
+        updateLoadingTexts(): void;
         resetTimer(): void;
         onScrollToBottom(): void;
         onScrollToTop(): void;

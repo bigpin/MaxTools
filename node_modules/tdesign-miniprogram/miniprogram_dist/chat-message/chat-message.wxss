@@ -8,7 +8,6 @@
 .t-chat-message__header .t-chat-message__avatar{padding-top:calc(44rpx + var(--td-spacer,16rpx));}
 .t-chat-message__header .t-chat-message__avatar:empty{padding-top:0;}
 .t-chat-message.user .t-chat-message__base{padding-right:var(--td-spacer-2,32rpx);}
-.t-chat-message.user .t-chat-content{max-width:90%;}
 .t-chat-message.assistant .t-chat-message__base{padding-left:var(--td-spacer-2,32rpx);}
 .t-chat-message.error .t-chat-message__base{padding-left:var(--td-spacer-2,32rpx);}
 .t-chat-message.error .t-chat-message__text--error{color:var(--td-error-color-6,#d54941);}

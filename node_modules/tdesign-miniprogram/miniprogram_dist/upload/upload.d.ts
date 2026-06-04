@@ -2,6 +2,7 @@
 import { SuperComponent } from '../common/src/index';
 import { UploadFile, SizeLimitObj } from './type';
 export default class Upload extends SuperComponent {
+    behaviors: string[];
     externalClasses: string[];
     options: {
         multipleSlots: boolean;
@@ -46,10 +47,20 @@ export default class Upload extends SuperComponent {
     resetDragLayout(): void;
     initDragLayout(): void;
     initDragList(): void;
+    getDragSelectors(): {
+        itemSelector: string;
+        wrapSelector: string;
+    };
+    getDragColumn(): number;
+    getDragItemGap(): number;
     initDragBaseData(): void;
     methods: {
+        isMediaFile(file: UploadFile): any;
+        isPreviewable(file: UploadFile): boolean;
         getPreviewMediaSources(): WechatMiniprogram.MediaSource[];
+        getMediaIndex(index: number): number;
         onPreview(e: WechatMiniprogram.BaseEvent): void;
+        isImageUrl(url: string): boolean;
         onPreviewImage(e: WechatMiniprogram.BaseEvent): void;
         onPreviewMedia(e: WechatMiniprogram.BaseEvent): void;
         uploadFiles(files: UploadFile[]): Promise<any>;

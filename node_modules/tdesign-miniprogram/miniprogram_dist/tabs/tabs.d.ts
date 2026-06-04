@@ -1,5 +1,3 @@
-/// <reference types="miniprogram-api-typings" />
-/// <reference types="miniprogram-api-typings" />
 import { RelationsOptions, SuperComponent } from '../common/src/index';
 import { TdTabsProps } from './type';
 export interface TabsProps extends TdTabsProps {
@@ -8,11 +6,7 @@ export default class Tabs extends SuperComponent {
     options: {
         pureDataPattern: RegExp;
     };
-    behaviors: WechatMiniprogram.Behavior.BehaviorIdentifier<WechatMiniprogram.Component.DataOption, WechatMiniprogram.Component.PropertyOption, {
-        resetTouchStatus(): void;
-        touchStart(event: any): void;
-        touchMove(event: any): void;
-    }, WechatMiniprogram.Component.BehaviorOption>[];
+    behaviors: string[];
     externalClasses: string[];
     relations: RelationsOptions;
     properties: TdTabsProps;
