@@ -1,6 +1,21 @@
 .DS_Store
-cloud/checkStockSignals/node_modules
+Thumbs.db
+
+# Dependencies
+node_modules/
+cloud/checkStockSignals/node_modules/
+
+# Build artifacts
+cloud/checkStockSignals/miniprogram_npm/
+
+# Lock files
+package-lock.json
 cloud/checkStockSignals/package-lock.json
+
+# IDE / Agent config
 .claude/
-assets/Thumbs.db
+CLAUDE.md
 .wolf/
+
+# Private config
+project.private.config.json
