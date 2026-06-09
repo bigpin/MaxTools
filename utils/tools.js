@@ -89,6 +89,14 @@ const TOOLS = [
         category: 'life',
         description: '选择困难症救星！随机帮你决定今天吃什么，支持自定义菜单',
         path: '/pages/tools/food-picker/index'
+    },
+    {
+        id: 'jump-rope',
+        name: '跳绳计数器',
+        icon: 'activity',
+        category: 'life',
+        description: '基于人体姿态估计的智能跳绳计数，支持语音播报和运动数据统计',
+        path: '/pages/tools/jump-rope/index'
     }
 ];
 

@@ -1,0 +1,197 @@
+/* pages/tools/jump-rope/index.wxss */
+page {
+    --primary-color: #00C853;
+    --secondary-color: #00BFA5;
+    --accent-color: #FF6D00;
+    --background: #F5F5F5;
+    --text-primary: #212121;
+    --text-secondary: #757575;
+}
+
+.container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--background);
+}
+
+/* 摄像头区域 */
+.camera-section {
+    flex: 0 0 70%;
+    position: relative;
+    background-color: #000;
+    min-height: 400rpx;
+}
+
+.camera-section canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* 调试信息 */
+.debug-info {
+    position: absolute;
+    top: 20rpx;
+    left: 20rpx;
+    padding: 10rpx 16rpx;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #00FF00;
+    font-size: 20rpx;
+    border-radius: 8rpx;
+    max-width: 80%;
+}
+
+.status-indicator {
+    position: absolute;
+    top: 20rpx;
+    right: 20rpx;
+    padding: 10rpx 20rpx;
+    border-radius: 20rpx;
+    font-size: 24rpx;
+}
+
+.status-indicator.jumping {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.status-indicator.paused {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+/* 切换摄像头按钮 */
+.switch-camera-btn {
+    position: absolute;
+    bottom: 20rpx;
+    right: 20rpx;
+    width: 70rpx;
+    height: 70rpx;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.switch-icon {
+    font-size: 36rpx;
+}
+
+/* 下部分区域 - 38.2% */
+.bottom-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 信息区：次数、时长、卡路里一行 */
+.info-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 20rpx 30rpx;
+    background-color: white;
+    margin: 15rpx 20rpx;
+    border-radius: 16rpx;
+    box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.08);
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.info-value {
+    font-size: 44rpx;
+    font-weight: bold;
+    color: var(--primary-color);
+    line-height: 1.2;
+}
+
+.info-label {
+    font-size: 22rpx;
+    color: var(--text-secondary);
+    margin-top: 4rpx;
+}
+
+.info-divider {
+    width: 1rpx;
+    height: 50rpx;
+    background-color: #e0e0e0;
+}
+
+/* 设置区：体重 */
+.setting-section {
+    display: flex;
+    justify-content: center;
+    padding: 6rpx 20rpx;
+}
+
+.weight-setting {
+    display: flex;
+    align-items: center;
+    padding: 6rpx 20rpx;
+    background-color: white;
+    border-radius: 30rpx;
+    box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.08);
+    font-size: 24rpx;
+}
+
+.edit-icon {
+    margin-left: 8rpx;
+    font-size: 22rpx;
+}
+
+/* 操作按钮区域 */
+.action-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20rpx 30rpx;
+    background-color: white;
+    box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.1);
+}
+
+.action-btn {
+    flex: none;
+    width: 180rpx;
+    margin: 0 15rpx;
+    padding: 18rpx 0;
+    border-radius: 15rpx;
+    font-size: 26rpx;
+    font-weight: bold;
+}
+
+.action-btn {
+    flex: 1;
+    max-width: 200rpx;
+    margin: 0 15rpx;
+    padding: 18rpx 0;
+    border-radius: 15rpx;
+    font-size: 26rpx;
+    font-weight: bold;
+}
+
+.action-btn.primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.action-btn.danger {
+    background-color: #FF5252;
+    color: white;
+}
+
+.action-btn.secondary {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.action-btn[disabled] {
+    opacity: 0.5;
+}

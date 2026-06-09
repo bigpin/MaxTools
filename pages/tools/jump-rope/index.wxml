@@ -1,0 +1,72 @@
+<!-- pages/tools/jump-rope/index.wxml -->
+<view class="container">
+    <!-- 摄像头区域：canvas 显示 VKSession 渲染的摄像头画面 + 关键点 -->
+    <view class="camera-section">
+        <canvas
+            type="webgl"
+            id="webgl"
+            style="width: {{width}}px; height: {{height}}px">
+        </canvas>
+        <!-- 调试信息 -->
+        <view class="debug-info">
+            <text>{{debugInfo}}</text>
+        </view>
+        <!-- 状态指示器 -->
+        <view class="status-indicator {{state}}">
+            <text>{{state === 'jumping' ? '运动中' : state === 'paused' ? '已暂停' : '准备'}}</text>
+        </view>
+        <!-- 切换摄像头按钮 -->
+        <view class="switch-camera-btn" bindtap="switchCamera">
+            <text class="switch-icon">🔄</text>
+        </view>
+    </view>
+
+    <!-- 下部分区域 (38.2%) -->
+    <view class="bottom-section">
+        <!-- 信息区：次数、时长、卡路里一行显示 -->
+        <view class="info-section">
+            <view class="info-item">
+                <text class="info-value">{{count}}</text>
+                <text class="info-label">次</text>
+            </view>
+            <view class="info-divider"></view>
+            <view class="info-item">
+                <text class="info-value">{{duration}}</text>
+                <text class="info-label">时长</text>
+            </view>
+            <view class="info-divider"></view>
+            <view class="info-item">
+                <text class="info-value">{{calories}}</text>
+                <text class="info-label">千卡</text>
+            </view>
+        </view>
+
+        <!-- 设置区：体重 -->
+        <view class="setting-section">
+            <view class="weight-setting" bindtap="showWeightModal">
+                <text>体重: {{weight}}kg</text>
+                <text class="edit-icon">✏️</text>
+            </view>
+        </view>
+
+        <!-- 操作按钮区域 -->
+        <view class="action-section">
+            <button
+                class="action-btn primary"
+                bindtap="toggleJumping">
+                {{isJumping ? '暂停' : '开始'}}
+            </button>
+            <button
+                class="action-btn danger"
+                bindtap="stopJumping"
+                disabled="{{count === 0}}">
+                结束
+            </button>
+            <button
+                class="action-btn secondary"
+                bindtap="goToHistory">
+                历史记录
+            </button>
+        </view>
+    </view>
+</view>

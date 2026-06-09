@@ -1,0 +1,77 @@
+/* pages/tools/jump-rope/history/index.wxss */
+.container {
+    height: 100vh;
+    background-color: #F5F5F5;
+}
+
+.record-list {
+    padding: 20rpx;
+}
+
+.record-card {
+    background-color: white;
+    border-radius: 15rpx;
+    padding: 20rpx;
+    margin-bottom: 20rpx;
+    box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.1);
+}
+
+.record-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15rpx;
+    padding-bottom: 15rpx;
+    border-bottom: 1rpx solid #EEEEEE;
+}
+
+.record-date {
+    font-size: 28rpx;
+    font-weight: bold;
+    color: #212121;
+}
+
+.record-time {
+    font-size: 24rpx;
+    color: #757575;
+}
+
+.record-body {
+    display: flex;
+    justify-content: space-around;
+}
+
+.record-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-value {
+    font-size: 36rpx;
+    font-weight: bold;
+    color: #00C853;
+}
+
+.stat-label {
+    font-size: 20rpx;
+    color: #757575;
+    margin-top: 5rpx;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 100rpx 0;
+}
+
+.empty-icon {
+    font-size: 80rpx;
+    margin-bottom: 20rpx;
+}
+
+.empty-text {
+    font-size: 32rpx;
+    color: #212121;
+}

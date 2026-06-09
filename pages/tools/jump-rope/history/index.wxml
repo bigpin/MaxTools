@@ -1,0 +1,30 @@
+<!-- pages/tools/jump-rope/history/index.wxml -->
+<view class="container">
+    <view class="record-list">
+        <view class="record-card" wx:for="{{records}}" wx:key="id">
+            <view class="record-header">
+                <text class="record-date">{{item.date}}</text>
+                <text class="record-time">{{item.startTime}} - {{item.endTime}}</text>
+            </view>
+            <view class="record-body">
+                <view class="record-stat">
+                    <text class="stat-value">{{item.count}}</text>
+                    <text class="stat-label">次</text>
+                </view>
+                <view class="record-stat">
+                    <text class="stat-value">{{item.duration}}</text>
+                    <text class="stat-label">时长</text>
+                </view>
+                <view class="record-stat">
+                    <text class="stat-value">{{item.calories}}</text>
+                    <text class="stat-label">千卡</text>
+                </view>
+            </view>
+        </view>
+
+        <view class="empty-state" wx:if="{{records.length === 0}}">
+            <text class="empty-icon">📊</text>
+            <text class="empty-text">暂无记录</text>
+        </view>
+    </view>
+</view>

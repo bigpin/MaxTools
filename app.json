@@ -21,7 +21,9 @@
         "data-insights/index",
         "shortcuts/index",
         "food-picker/index",
-        "food-picker/settings"
+        "food-picker/settings",
+        "jump-rope/index",
+        "jump-rope/history/index"
       ]
     }
   ],
@@ -31,6 +33,11 @@
     "backgroundColor": "#f5f5f5",
     "navigationBarTitleText": "Max的工具宝藏",
     "navigationBarTextStyle": "white"
+  },
+  "permission": {
+    "scope.camera": {
+      "desc": "跳绳计数器需要使用摄像头来检测您的跳绳动作"
+    }
   },
   "sitemapLocation": "sitemap.json"
 }

@@ -54,7 +54,7 @@
         "tabSize": 4
     },
     "condition": {},
-    "libVersion": "2.20.2",
+    "libVersion": "2.25.1",
     "packOptions": {
         "ignore": [
             {
