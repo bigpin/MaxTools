@@ -1265,16 +1265,4 @@ Page({
   /**
    * 复制时间轴视图链接
    */
-  openTimelineView() {
-    wx.setClipboardData({
-      data: 'https://cloudbase-4g6zx8vx290da64e-1323596446.tcloudbaseapp.com/',
-      success() {
-        wx.showToast({
-          title: '链接已复制，浏览器打开',
-          icon: 'none',
-          duration: 2000
-        });
-      }
-    });
-  }
 });
