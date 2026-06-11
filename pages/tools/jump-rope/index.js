@@ -4,14 +4,16 @@
 // ============ 常量 ============
 const CALORIES_FACTOR = 0.13;
 // 跳跃检测参数
-const JUMP_THRESHOLD = 0.03;        // 踝关节离地阈值（屏幕高度 3%）
+const JUMP_THRESHOLD_RATIO = 0.25;  // 踝-髋距离的比例作为离地阈值
+const JUMP_THRESHOLD_MIN = 0.015;   // 阈值下限（防止距离太小时阈值过小）
 const MIN_AIR_TIME = 100;           // 最小腾空时间 ms
 const MAX_AIR_TIME = 800;           // 最大腾空时间 ms
 const MIN_JUMP_INTERVAL = 200;      // 两次跳跃最小间隔 ms
-const SMOOTH_WINDOW = 5;            // 滑动窗口平滑帧数
-const BASELINE_EMA = 0.03;          // 基准线 EMA 系数（慢跟踪）
+const SMOOTH_WINDOW = 2;            // 滑动窗口平滑帧数（小窗口减少延迟）
+const BASELINE_EMA = 0.08;          // 基准线 EMA 系数
+const LEG_LENGTH_EMA = 0.05;        // 腿长 EMA 系数（慢跟踪）
+const BASELINE_INIT_FRAMES = 10;    // 初始化基准线所需帧数
 const CONFIDENCE_THRESHOLD = 0.3;   // 关键点置信度过滤阈值
-const KNEE_ANGLE_THRESHOLD = 150;   // 膝关节伸直角度阈值（度）
 const VOICE_ANNOUNCE_INTERVAL = 20;
 const MAX_RECORDS = 100;
 
@@ -95,26 +97,30 @@ Page({
         height: 1,
         cameraPosition: 0, // 0=后置 1=前置
         count: 0,
+        countAnim: false,
         duration: '00:00:00',
         calories: '0.00',
         weight: 60,
         isJumping: false,
         state: 'idle',
         startTime: null,
-        debugInfo: '等待初始化...'
+        debugInfo: ''
     },
 
     onReady() {
-        this._lastJumpTime = 0;
+        this._lastJumpTime = Date.now();
         this._elapsedSeconds = 0;
         this._timer = null;
         this._session = null;
+        this._animating = false;
         this._anchor2DList = [];
         // 双重验证算法状态
         this._wasAirborne = false;
         this._takeoffTime = 0;
         this._yQueue = [];
         this._baseline = undefined;
+        this._baselineInitSamples = [];
+        this._legLength = undefined;
 
         this.loadSettings();
         wx.setKeepScreenOn({ keepScreenOn: true });
@@ -126,11 +132,16 @@ Page({
                 this.canvas = res[0].node;
                 const info = wx.getSystemInfoSync();
                 const pixelRatio = info.pixelRatio;
-                const width = info.windowWidth;
-                const height = info.windowHeight * 0.618;
+                const screenWidth = info.windowWidth;
+                const screenHeight = info.windowHeight;
+                // 高度占屏幕 70%，宽度按 4:3 计算
+                const height = screenHeight * 0.7;
+                const width = height * 4 / 3;
                 this.canvas.width = width * pixelRatio;
                 this.canvas.height = height * pixelRatio;
-                this.setData({ width, height });
+                // 偏移量用于居中裁剪
+                const offsetX = -(width - screenWidth) / 2;
+                this.setData({ width, height, offsetX });
 
                 this.initVKSession();
             });
@@ -187,14 +198,17 @@ Page({
 
         console.log('GL 初始化完成, gl=', gl);
 
-        // 与官方 behavior.js 完全一致的 VKSession 配置
+        // 优先使用 v2 模型（精度更高），降级到 v1
+        const vkVersion = (typeof wx.isVKSupport === 'function' && wx.isVKSupport('v2')) ? 'v2' : 'v1';
+        console.log('VKSession version:', vkVersion);
+
         const session = this.session = wx.createVKSession({
             track: {
                 plane: { mode: 1 },
                 body: { mode: 1 }
             },
             gl: this.gl,
-            version: 'v1',
+            version: vkVersion,
         });
 
         session.start(err => {
@@ -204,7 +218,7 @@ Page({
                 return;
             }
             console.log('VKSession.version', session.version);
-            this.setData({ debugInfo: 'VKSession 已启动，等待人体...' });
+            this.setData({ debugInfo: '' });
 
             // 监听事件（与官方 behavior.js 一致）
             session.on('addAnchors', anchors => {
@@ -220,7 +234,9 @@ Page({
             });
             session.on('removeAnchors', () => {
                 this._anchor2DList = [];
-                this.setData({ debugInfo: '未检测到人体' });
+                if (this.data.state === 'jumping') {
+                    this.setData({ debugInfo: '未检测到人体' });
+                }
             });
 
             // 逐帧渲染（与官方 behavior.js 一致）
@@ -228,23 +244,38 @@ Page({
             const fps = 30;
             const fpsInterval = 1000 / fps;
             let last = Date.now();
+            this._animating = true;
 
             const onFrame = () => {
+                if (!this._animating || !this.session) return;
                 const now = Date.now();
                 if (now - last > fpsInterval) {
                     last = now - ((now - last) % fpsInterval);
-                    const frame = session.getVKFrame(canvas.width, canvas.height);
-                    if (frame) {
-                        this._renderFrame(frame);
+                    try {
+                        if (!this._animating || !this.session || !this.gl) return;
+                        // body detect 对分辨率不敏感，用小图省 CPU
+                        const frame = session.getVKFrame(320, 240);
+                        if (frame) {
+                            this._renderFrame(frame);
+                        }
+                    } catch (e) {
+                        console.warn('render frame error:', e);
                     }
                 }
-                session.requestAnimationFrame(onFrame);
+                if (this._animating && this.session && this.gl) {
+                    try {
+                        session.requestAnimationFrame(onFrame);
+                    } catch (e) {
+                        console.warn('requestAnimationFrame error:', e);
+                    }
+                }
             };
             session.requestAnimationFrame(onFrame);
         });
     },
 
     destroyVKSession() {
+        this._animating = false;
         if (this.session) {
             try { this.session.destroy(); } catch (e) {}
             this.session = null;
@@ -281,14 +312,19 @@ Page({
         const gl = this.gl;
         if (!gl) return;
 
-        // 1. 渲染 YUV 摄像头画面（来自 yuvBehavior.js renderGL）
-        this._renderYUV(gl, frame);
+        try {
+            // 1. 渲染 YUV 摄像头画面（来自 yuvBehavior.js renderGL）
+            this._renderYUV(gl, frame);
 
-        // 2. 绘制人体关键点（来自 body-detect.js render）
-        this._drawBody(gl);
+            // 2. 绘制人体关键点（来自 body-detect.js render）
+            this._drawBody(gl);
+        } catch (e) {
+            console.warn('_renderFrame error:', e);
+        }
     },
 
     _renderYUV(gl, frame) {
+        if (!this._yuvProgram) return;
         const texResult = frame.getCameraTexture(gl, 'yuv');
         if (!texResult || !texResult.yTexture || !texResult.uvTexture) return;
 
@@ -320,37 +356,48 @@ Page({
     },
 
     _drawBody(gl) {
+        if (!this._pointProgram || !this._edgeProgram) return;
         const anchor2DList = this._anchor2DList;
         if (!anchor2DList || anchor2DList.length === 0) return;
 
-        // 绘制关键点
-        const flattenPoints = [];
-        anchor2DList.forEach(anchor => {
-            anchor.points.forEach(point => {
-                flattenPoints.push(point.x * 2 - 1, 1 - point.y * 2);
+        try {
+            // 绘制关键点（复用缓冲区）
+            const flattenPoints = [];
+            anchor2DList.forEach(anchor => {
+                if (anchor.points) {
+                    anchor.points.forEach(point => {
+                        flattenPoints.push(point.x * 2 - 1, 1 - point.y * 2);
+                    });
+                }
             });
-        });
 
-        if (flattenPoints.length > 0) {
-            gl.useProgram(this._pointProgram);
+            if (flattenPoints.length > 0) {
+                gl.useProgram(this._pointProgram);
 
-            const buffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(flattenPoints), gl.STATIC_DRAW);
+                if (!this._pointBuf) this._pointBuf = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, this._pointBuf);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(flattenPoints), gl.DYNAMIC_DRAW);
 
-            const aPos = gl.getAttribLocation(this._pointProgram, 'a_Position');
-            gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-            gl.enableVertexAttribArray(aPos);
+                const aPos = gl.getAttribLocation(this._pointProgram, 'a_Position');
+                gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+                gl.enableVertexAttribArray(aPos);
 
-            gl.drawArrays(gl.POINTS, 0, flattenPoints.length / 2);
-            gl.deleteBuffer(buffer);
-        }
+                gl.drawArrays(gl.POINTS, 0, flattenPoints.length / 2);
+            }
 
-        // 绘制边框
-        gl.useProgram(this._edgeProgram);
-        for (let i = 0; i < anchor2DList.length; i++) {
-            const a = anchor2DList[i];
-            this._drawRectEdge(gl, a.origin.x, a.origin.y, a.size.width, a.size.height);
+            // 绘制边框（复用缓冲区）
+            gl.useProgram(this._edgeProgram);
+            if (!this._edgeBuf) this._edgeBuf = gl.createBuffer();
+            if (!this._edgeAttr) this._edgeAttr = gl.getAttribLocation(this._edgeProgram, 'aPosition');
+
+            for (let i = 0; i < anchor2DList.length; i++) {
+                const a = anchor2DList[i];
+                if (a.origin && a.size) {
+                    this._drawRectEdge(gl, a.origin.x, a.origin.y, a.size.width, a.size.height);
+                }
+            }
+        } catch (e) {
+            console.warn('_drawBody error:', e);
         }
     },
 
@@ -358,59 +405,60 @@ Page({
         const centerX = x * 2 - 1 + width;
         const centerY = -1 * (y * 2 - 1) - height;
 
-        const vertices = new Float32Array([-1, 1, -1, -1, 1, 1, 1, -1]);
-        const buffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._edgeBuf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, 1, -1, -1, 1, 1, 1, -1]), gl.DYNAMIC_DRAW);
 
-        const aPos = gl.getAttribLocation(this._edgeProgram, 'aPosition');
-        gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(aPos);
+        gl.vertexAttribPointer(this._edgeAttr, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(this._edgeAttr);
 
         gl.uniform2fv(gl.getUniformLocation(this._edgeProgram, 'rightTopPoint'), [width, height]);
         gl.uniform2fv(gl.getUniformLocation(this._edgeProgram, 'centerPoint'), [centerX, centerY]);
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        gl.deleteBuffer(buffer);
     },
 
     // ============ 人体检测回调 ============
 
     _onBodyAnchors(anchors) {
         if (!anchors || anchors.length === 0) {
-            this.setData({ debugInfo: '未检测到人体' });
+            if (this.data.state === 'jumping') {
+                this.setData({ debugInfo: '未检测到人体' });
+            }
             return;
         }
 
-        const anchor = anchors[0];
-        const keypoints = this._parseKeypoints(anchor);
-        if (keypoints) {
-            const parts = [];
+        try {
+            const anchor = anchors[0];
+            const isJumping = this.data.state === 'jumping';
 
-            // 踝关节 Y
-            if (keypoints.leftAnkle && keypoints.rightAnkle) {
-                const ay = (Number(keypoints.leftAnkle.y) + Number(keypoints.rightAnkle.y)) / 2;
-                parts.push(`踝Y${ay.toFixed(3)}`);
-            }
-            // 髋关节 Y（降级方案）
-            if (keypoints.leftHip && keypoints.rightHip) {
-                const hy = (Number(keypoints.leftHip.y) + Number(keypoints.rightHip.y)) / 2;
-                parts.push(`臀Y${hy.toFixed(3)}`);
-            }
-            // 基准线
-            if (this._baseline !== undefined) {
-                parts.push(`基线${this._baseline.toFixed(3)}`);
-            }
-            // 膝关节角度
-            if (keypoints.leftHip && keypoints.leftKnee && keypoints.leftAnkle) {
-                const angle = this._getKneeAngle(keypoints.leftHip, keypoints.leftKnee, keypoints.leftAnkle);
-                parts.push(`膝角${angle.toFixed(0)}°`);
-            }
-            // 腾空状态
-            parts.push(this._wasAirborne ? '⬆腾空' : '●站立');
+            const keypoints = this._parseKeypoints(anchor);
+            if (keypoints) {
+                // 只在运动中输出日志
+                if (isJumping) {
+                    const parts = [];
+                    if (keypoints.leftAnkle && keypoints.rightAnkle) {
+                        const ay = (Number(keypoints.leftAnkle.y) + Number(keypoints.rightAnkle.y)) / 2;
+                        parts.push(`踝Y${ay.toFixed(3)}`);
+                    }
+                    if (keypoints.leftHip && keypoints.rightHip) {
+                        const hy = (Number(keypoints.leftHip.y) + Number(keypoints.rightHip.y)) / 2;
+                        parts.push(`臀Y${hy.toFixed(3)}`);
+                    }
+                    if (this._baseline !== undefined) {
+                        parts.push(`基线${this._baseline.toFixed(3)}`);
+                    }
+                    if (keypoints.leftHip && keypoints.leftKnee && keypoints.leftAnkle) {
+                        const angle = this._getKneeAngle(keypoints.leftHip, keypoints.leftKnee, keypoints.leftAnkle);
+                        parts.push(`膝角${angle.toFixed(0)}°`);
+                    }
+                    parts.push(this._wasAirborne ? '⬆腾空' : '●站立');
+                    this.setData({ debugInfo: parts.join(' ') });
+                }
 
-            this.setData({ debugInfo: parts.join(' ') });
-            if (this.data.state === 'jumping') this._processBody(anchor);
+                this._processBody(anchor);
+            }
+        } catch (e) {
+            console.warn('_onBodyAnchors error:', e);
         }
     },
 
@@ -438,12 +486,13 @@ Page({
         if (!anchor || !anchor.points || index >= anchor.points.length) return null;
         const pt = anchor.points[index];
         if (!pt) return null;
-        // 如果有 score/score 属性且低于阈值，丢弃
+        // 如果有 score 属性且低于阈值，丢弃
         if (pt.score !== undefined && pt.score < CONFIDENCE_THRESHOLD) return null;
-        return {
-            x: typeof pt.x === 'number' ? pt.x : parseFloat(pt.x) || 0,
-            y: typeof pt.y === 'number' ? pt.y : parseFloat(pt.y) || 0,
-        };
+        const x = typeof pt.x === 'number' ? pt.x : parseFloat(pt.x) || 0;
+        const y = typeof pt.y === 'number' ? pt.y : parseFloat(pt.y) || 0;
+        // 过滤 VKSession 哨兵值（如 -0.2417）
+        if (y < -0.2 || y > 1.0) return null;
+        return { x, y };
     },
 
     /**
@@ -469,13 +518,12 @@ Page({
     },
 
     _processBody(anchor) {
+        if (this.data.state !== 'jumping') return;
         const now = Date.now();
 
         // 获取关键点（按 VKSession 索引）
         const leftAnkle = this._getKeypoint(anchor, 15);   // 左踝
         const rightAnkle = this._getKeypoint(anchor, 16);  // 右踝
-        const leftKnee = this._getKeypoint(anchor, 13);    // 左膝
-        const rightKnee = this._getKeypoint(anchor, 14);   // 右膝
         const leftHip = this._getKeypoint(anchor, 11);     // 左髋
         const rightHip = this._getKeypoint(anchor, 12);    // 右髋
 
@@ -493,30 +541,66 @@ Page({
             return; // 关键点不足，跳过
         }
 
+        // 过滤 VKSession 哨兵值（-0.2417 等异常固定值）
+        if (primaryY < -0.2 || primaryY > 1.0) return;
+
         // 滑动窗口平滑
         this._yQueue = this._yQueue || [];
         const smoothedY = this._smoothAvg(this._yQueue, primaryY, SMOOTH_WINDOW);
 
-        // 基准线慢速 EMA 跟踪（只在站立时更新）
+        // 自适应阈值：用踝-髋距离作为身体尺度参考
+        let legLen = this._legLength;
+        if (useAnkle && leftAnkle && leftHip) {
+            const rawLen = Math.abs(leftAnkle.y - leftHip.y);
+            if (rawLen > 0.01) {
+                legLen = this._legLength === undefined
+                    ? rawLen
+                    : this._legLength * (1 - LEG_LENGTH_EMA) + rawLen * LEG_LENGTH_EMA;
+                this._legLength = legLen;
+            }
+        }
+        const jumpThreshold = legLen
+            ? Math.max(legLen * JUMP_THRESHOLD_RATIO, JUMP_THRESHOLD_MIN)
+            : JUMP_THRESHOLD_MIN;
+
+        // 基准线：先收集几帧样本确定初始值，之后站立时用 EMA 更新
         if (this._baseline === undefined) {
-            this._baseline = smoothedY;
+            if (!this._baselineInitSamples) this._baselineInitSamples = [];
+            this._baselineInitSamples.push(smoothedY);
+            if (this._baselineInitSamples.length >= BASELINE_INIT_FRAMES) {
+                const avg = this._baselineInitSamples.reduce((a, b) => a + b, 0) / this._baselineInitSamples.length;
+                this._baseline = avg;
+                console.log('[Baseline] 初始化完成:', avg.toFixed(4), '样本数:', this._baselineInitSamples.length);
+            }
+            return; // 基准线未就绪，不检测
         } else if (!this._wasAirborne) {
+            // 站立时正常 EMA 更新（已过滤哨兵值，不会有异常数据）
             this._baseline = this._baseline * (1 - BASELINE_EMA) + smoothedY * BASELINE_EMA;
         }
 
-        // 离地判定
-        const isAbove = (this._baseline - smoothedY) > JUMP_THRESHOLD;
+        // 离地判定（基于自适应阈值）
+        const delta = this._baseline - smoothedY;
+        const isAbove = delta > jumpThreshold;
+        const isAirborne = isAbove;
 
-        // 双重验证：膝关节角度（如果有膝+髋+踝数据）
-        let kneeVerified = true;
-        if (useAnkle && leftKnee && leftHip && leftAnkle) {
-            const leftAngle = this._getKneeAngle(leftHip, leftKnee, leftAnkle);
-            // 跳起时膝盖伸直，角度大；站立弯曲时角度小
-            kneeVerified = leftAngle > KNEE_ANGLE_THRESHOLD;
+        // 调试日志（每10帧打印一次）
+        if (this._logCount === undefined) this._logCount = 0;
+        this._logCount++;
+        if (this._logCount % 10 === 0) {
+            console.log('[JumpDetect]', JSON.stringify({
+                useAnkle,
+                primaryY: primaryY.toFixed(4),
+                smoothedY: smoothedY.toFixed(4),
+                baseline: this._baseline.toFixed(4),
+                delta: delta.toFixed(4),
+                threshold: jumpThreshold.toFixed(4),
+                legLen: legLen ? legLen.toFixed(4) : 'N/A',
+                isAirborne,
+                wasAirborne: this._wasAirborne
+            }));
         }
 
-        const isAirborne = isAbove && kneeVerified;
-        this._onAirborneChange(isAirborne, now, smoothedY);
+        this._onAirborneChange(isAirborne, now);
     },
 
     _onAirborneChange(isAirborne, now) {
@@ -531,9 +615,14 @@ Page({
             if (airTime > MIN_AIR_TIME && airTime < MAX_AIR_TIME && timeSinceLastJump > MIN_JUMP_INTERVAL) {
                 const newCount = this.data.count + 1;
                 this._lastJumpTime = now;
-                this.setData({ count: newCount });
+                this.setData({ count: newCount, countAnim: true });
                 this._updateCalories();
+                console.log('[JumpCount]', newCount, 'airTime:', airTime + 'ms');
                 if (newCount % VOICE_ANNOUNCE_INTERVAL === 0) this.speak(`已跳${newCount}次`);
+                // 动画结束后重置
+                setTimeout(() => this.setData({ countAnim: false }), 400);
+            } else {
+                console.log('[JumpRejected]', 'airTime:', airTime + 'ms', 'interval:', timeSinceLastJump + 'ms');
             }
         }
 
@@ -609,12 +698,14 @@ Page({
         this.speak(`运动结束，共跳${this.data.count}次，时长${this._fmtDur(dur)}，消耗${this.data.calories}千卡`);
         this._saveRecord();
         this._elapsedSeconds = 0;
-        this._lastJumpTime = 0;
+        this._lastJumpTime = Date.now();
         // 重置双重验证状态
         this._wasAirborne = false;
         this._takeoffTime = 0;
         this._yQueue = [];
         this._baseline = undefined;
+        this._baselineInitSamples = [];
+        this._legLength = undefined;
         this.setData({ state: 'idle', isJumping: false, count: 0, duration: '00:00:00', calories: '0.00', startTime: null });
     },
 
@@ -694,15 +785,30 @@ Page({
 
     cleanup() {
         this._stopTimer();
+        this._animating = false;
         this.destroyVKSession();
         if (this.gl) {
-            if (this._yuvProgram) this.gl.deleteProgram(this._yuvProgram);
-            if (this._pointProgram) this.gl.deleteProgram(this._pointProgram);
-            if (this._edgeProgram) this.gl.deleteProgram(this._edgeProgram);
-            if (this._yuvPosBuf) this.gl.deleteBuffer(this._yuvPosBuf);
-            if (this._yuvTexBuf) this.gl.deleteBuffer(this._yuvTexBuf);
+            try {
+                if (this._yuvProgram) this.gl.deleteProgram(this._yuvProgram);
+                if (this._pointProgram) this.gl.deleteProgram(this._pointProgram);
+                if (this._edgeProgram) this.gl.deleteProgram(this._edgeProgram);
+                if (this._yuvPosBuf) this.gl.deleteBuffer(this._yuvPosBuf);
+                if (this._yuvTexBuf) this.gl.deleteBuffer(this._yuvTexBuf);
+                if (this._pointBuf) this.gl.deleteBuffer(this._pointBuf);
+                if (this._edgeBuf) this.gl.deleteBuffer(this._edgeBuf);
+            } catch (e) {
+                console.warn('GL cleanup error:', e);
+            }
             this.gl = null;
         }
+        this._yuvProgram = null;
+        this._pointProgram = null;
+        this._edgeProgram = null;
+        this._yuvPosBuf = null;
+        this._yuvTexBuf = null;
+        this._pointBuf = null;
+        this._edgeBuf = null;
+        this._edgeAttr = null;
         wx.setKeepScreenOn({ keepScreenOn: false });
     }
 });

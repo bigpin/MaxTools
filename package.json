@@ -7,8 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@antv/f2": "^5.14.0",
-"tdesign-miniprogram": "^1.12.2"
+    "@antv/f2": "^4.0.51",
+    "headroom-ai": "^0.22.4",
+    "tdesign-miniprogram": "^1.12.2"
   },
   "keywords": [],
   "author": "",

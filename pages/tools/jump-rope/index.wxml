@@ -5,7 +5,7 @@
         <canvas
             type="webgl"
             id="webgl"
-            style="width: {{width}}px; height: {{height}}px">
+            style="width: {{width}}px; height: {{height}}px; transform: translateX({{offsetX}}px);">
         </canvas>
         <!-- 调试信息 -->
         <view class="debug-info">
@@ -26,7 +26,7 @@
         <!-- 信息区：次数、时长、卡路里一行显示 -->
         <view class="info-section">
             <view class="info-item">
-                <text class="info-value">{{count}}</text>
+                <text class="info-value {{countAnim ? 'count-bounce' : ''}}">{{count}}</text>
                 <text class="info-label">次</text>
             </view>
             <view class="info-divider"></view>

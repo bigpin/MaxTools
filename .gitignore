@@ -16,6 +16,9 @@ cloud/checkStockSignals/package-lock.json
 .claude/
 CLAUDE.md
 .wolf/
+.serena/
+.superpowers/
+.next/
 
 # Private config
 project.private.config.json
