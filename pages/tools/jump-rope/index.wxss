@@ -17,10 +17,9 @@ page {
 
 /* 摄像头区域 */
 .camera-section {
-    flex: 0 0 70%;
     position: relative;
     background-color: #000;
-    min-height: 400rpx;
+    overflow: hidden;
 }
 
 .camera-section canvas {

@@ -104,7 +104,7 @@ Page({
         isJumping: false,
         state: 'idle',
         startTime: null,
-        debugInfo: '等待初始化...'
+        debugInfo: ''
     },
 
     onReady() {
@@ -132,11 +132,16 @@ Page({
                 this.canvas = res[0].node;
                 const info = wx.getSystemInfoSync();
                 const pixelRatio = info.pixelRatio;
-                const width = info.windowWidth;
-                const height = info.windowHeight * 0.618;
+                const screenWidth = info.windowWidth;
+                const screenHeight = info.windowHeight;
+                // 高度占屏幕 70%，宽度按 4:3 计算
+                const height = screenHeight * 0.7;
+                const width = height * 4 / 3;
                 this.canvas.width = width * pixelRatio;
                 this.canvas.height = height * pixelRatio;
-                this.setData({ width, height });
+                // 偏移量用于居中裁剪
+                const offsetX = -(width - screenWidth) / 2;
+                this.setData({ width, height, offsetX });
 
                 this.initVKSession();
             });
@@ -193,14 +198,17 @@ Page({
 
         console.log('GL 初始化完成, gl=', gl);
 
-        // 与官方 behavior.js 完全一致的 VKSession 配置
+        // 优先使用 v2 模型（精度更高），降级到 v1
+        const vkVersion = (typeof wx.isVKSupport === 'function' && wx.isVKSupport('v2')) ? 'v2' : 'v1';
+        console.log('VKSession version:', vkVersion);
+
         const session = this.session = wx.createVKSession({
             track: {
                 plane: { mode: 1 },
                 body: { mode: 1 }
             },
             gl: this.gl,
-            version: 'v1',
+            version: vkVersion,
         });
 
         session.start(err => {
@@ -210,7 +218,7 @@ Page({
                 return;
             }
             console.log('VKSession.version', session.version);
-            this.setData({ debugInfo: 'VKSession 已启动，等待人体...' });
+            this.setData({ debugInfo: '' });
 
             // 监听事件（与官方 behavior.js 一致）
             session.on('addAnchors', anchors => {
@@ -226,7 +234,9 @@ Page({
             });
             session.on('removeAnchors', () => {
                 this._anchor2DList = [];
-                this.setData({ debugInfo: '未检测到人体' });
+                if (this.data.state === 'jumping') {
+                    this.setData({ debugInfo: '未检测到人体' });
+                }
             });
 
             // 逐帧渲染（与官方 behavior.js 一致）
@@ -243,7 +253,8 @@ Page({
                     last = now - ((now - last) % fpsInterval);
                     try {
                         if (!this._animating || !this.session || !this.gl) return;
-                        const frame = session.getVKFrame(canvas.width, canvas.height);
+                        // body detect 对分辨率不敏感，用小图省 CPU
+                        const frame = session.getVKFrame(320, 240);
                         if (frame) {
                             this._renderFrame(frame);
                         }
@@ -410,7 +421,9 @@ Page({
 
     _onBodyAnchors(anchors) {
         if (!anchors || anchors.length === 0) {
-            this.setData({ debugInfo: '未检测到人体' });
+            if (this.data.state === 'jumping') {
+                this.setData({ debugInfo: '未检测到人体' });
+            }
             return;
         }
 

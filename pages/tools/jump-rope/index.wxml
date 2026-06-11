@@ -5,7 +5,7 @@
         <canvas
             type="webgl"
             id="webgl"
-            style="width: {{width}}px; height: {{height}}px">
+            style="width: {{width}}px; height: {{height}}px; transform: translateX({{offsetX}}px);">
         </canvas>
         <!-- 调试信息 -->
         <view class="debug-info">
