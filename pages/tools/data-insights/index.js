@@ -69,10 +69,10 @@ Page({
   },
 
   onLoad() {
-    // 体验版：不读开关，直接跳转首页
+    // 开发版、体验版：直接跳转首页，只有正式版放出来
     try {
       const envVersion = (wx.getAccountInfoSync() || {}).miniProgram?.envVersion || 'develop';
-      if (envVersion === 'trial') {
+      if (envVersion !== 'release') {
         wx.redirectTo({ url: '/pages/index/index' });
         return;
       }

@@ -61,21 +61,18 @@ Page({
             try {
                 const accountInfo = wx.getAccountInfoSync();
                 envVersion = accountInfo.miniProgram.envVersion || 'develop';
-                console.log('小程序环境:', envVersion);
             } catch (e) {
                 console.warn('获取版本号失败:', e);
             }
 
         let disabledTools;
         if (envVersion === 'develop') {
-                console.log('开发版环境，显示所有工具');
-                disabledTools = [];
+                disabledTools = [...SWITCH_CONTROLLED_TOOLS];
                 this.setData({ disabledTools });
                 return;
             }
 
             if (envVersion === 'trial') {
-                console.log('体验版环境，敏感功能一律禁用');
                 disabledTools = [...SWITCH_CONTROLLED_TOOLS];
                 this.setData({ disabledTools });
                 return;
@@ -90,7 +87,6 @@ Page({
                     .filter(s => SWITCH_CONTROLLED_TOOLS.includes(s.tool_id) && s.enabled !== false && !s.review_version)
                     .map(s => s.tool_id);
                 disabledTools = SWITCH_CONTROLLED_TOOLS.filter(id => !allowedIds.includes(id));
-                console.log('工具开关加载完成，禁用的工具:', disabledTools, '已开启:', allowedIds);
             } catch (e) {
                 console.warn('读取工具开关失败，保持默认禁用:', e);
             }

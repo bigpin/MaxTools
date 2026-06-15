@@ -37,7 +37,7 @@ Page({
             } catch (e) {}
 
             if (envVersion === 'develop') {
-                this.setData({ disabledTools: [] });
+                this.setData({ disabledTools: [...SWITCH_CONTROLLED_TOOLS] });
                 return;
             }
 
