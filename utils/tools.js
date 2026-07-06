@@ -101,7 +101,7 @@ const TOOLS = [
 ];
 
 // 需要开关控制的工具ID列表（审核敏感功能）
-const SWITCH_CONTROLLED_TOOLS = ['data-insights', 'photo-privacy'];
+const SWITCH_CONTROLLED_TOOLS = ['photo-privacy'];
 
 // 当前存在的工具 id 列表（用于过滤最近使用/收藏中的无效项）
 const VALID_TOOL_IDS = TOOLS.map(t => t.id);

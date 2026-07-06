@@ -4,5 +4,5 @@
   "navigationBarTitleText": "跳绳计数器",
   "navigationBarBackgroundColor": "#00C853",
   "navigationBarTextStyle": "white",
-  "pageOrientation": "auto"
+  "pageOrientation": "portrait"
 }

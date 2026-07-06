@@ -27,7 +27,7 @@
 - **人体检测**：微信 VisionKit Body 人体关键点检测
 - **运动分析**：基于人体关键点的周期性运动分析
 - **数据存储**：wx.setStorageSync
-- **语音播报**：微信内置TTS插件
+- **语音播报**：振动 + Toast 提示（无需插件）
 - **文件操作**：wx.getFileSystemManager
 
 ### 2.2 架构图
@@ -386,30 +386,17 @@ async requestCameraPermission() {
 }
 ```
 
-### 6.2 语音播报实现
+### 6.2 语音播报实现（振动 + Toast）
 
 ```javascript
+// 语音播报：振动反馈 + 关键节点 Toast 提示，无需插件
 function speak(text) {
-    const plugin = requirePlugin('WechatSI');
-    const manager = plugin.textToSpeech({
-        lang: 'zh_CN',
-        tts: true
-    });
-
-    manager.speak({
-        content: text
-    });
-}
-
-function announceCount(count) {
-    if (count % 20 === 0) {
-        speak(`已跳${count}次`);
+    // 振动反馈
+    try { wx.vibrateShort({ type: 'medium' }); } catch (_) {}
+    // 关键节点显示文字提示，计数播报不显示（避免频繁打断）
+    if (text.includes('开始') || text.includes('结束') || text.includes('暂停') || text.includes('继续')) {
+        wx.showToast({ title: text, icon: 'none', duration: 1500 });
     }
-}
-
-function announceEnd(count, duration, calories) {
-    const minutes = Math.floor(duration / 60);
-    speak(`运动结束，共跳${count}次，时长${minutes}分钟，消耗${calories.toFixed(1)}千卡`);
 }
 ```
 

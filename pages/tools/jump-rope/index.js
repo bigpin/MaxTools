@@ -209,6 +209,7 @@ Page({
             },
             gl: this.gl,
             version: vkVersion,
+            cameraPosition: this.data.cameraPosition
         });
 
         session.start(err => {
@@ -637,12 +638,11 @@ Page({
     // ============ 切换摄像头 ============
 
     switchCamera() {
-        if (!this.session || !this.session.config) return;
         const pos = this.data.cameraPosition === 0 ? 1 : 0;
-        const config = this.session.config;
-        config.cameraPosition = pos;
-        this.session.config = config;
         this.setData({ cameraPosition: pos });
+        // VKSession 不支持动态切换摄像头，需销毁重建
+        this.destroyVKSession();
+        this.initVKSession();
         console.log('切换摄像头:', pos === 0 ? '后置' : '前置');
     },
 
@@ -771,14 +771,15 @@ Page({
         this.setData({ weight: s.weight || 60 });
     },
 
-    // ============ 语音 ============
+    // ============ 语音（振动 + Toast 提示，无需插件） ============
 
     speak(text) {
-        try {
-            const plugin = typeof requirePlugin === 'function' && requirePlugin('WechatSI');
-            if (plugin) { plugin.textToSpeech({ lang: 'zh_CN', tts: true }).speak({ content: text }); }
-            else { wx.vibrateShort({ type: 'medium' }); }
-        } catch (e) { try { wx.vibrateShort({ type: 'medium' }); } catch (_) {} }
+        // 振动反馈
+        try { wx.vibrateShort({ type: 'medium' }); } catch (_) {}
+        // 关键节点显示文字提示，计数播报不显示（避免频繁打断）
+        if (text.includes('开始') || text.includes('结束') || text.includes('暂停') || text.includes('继续')) {
+            wx.showToast({ title: text, icon: 'none', duration: 1500 });
+        }
     },
 
     // ============ 清理 ============

@@ -1,30 +1,63 @@
 <!-- pages/tools/jump-rope/history/index.wxml -->
 <view class="container">
+    <!-- 顶部操作栏 -->
+    <view class="top-bar" wx:if="{{records.length > 0}}">
+        <view class="top-bar-left">
+            <text class="record-count">共 {{records.length}} 条记录</text>
+        </view>
+        <view class="top-bar-right">
+            <text class="top-btn edit-btn" bindtap="toggleEdit">{{editing ? '取消' : '管理'}}</text>
+            <text class="top-btn clear-btn" bindtap="clearAll" wx:if="{{!editing}}">清空</text>
+        </view>
+    </view>
+
+    <!-- 批量删除操作栏 -->
+    <view class="batch-bar" wx:if="{{editing}}">
+        <text class="batch-info">已选 {{selectedIds.length}} 项</text>
+        <text class="batch-delete-btn" bindtap="deleteSelected">删除选中</text>
+    </view>
+
+    <!-- 记录列表 -->
     <view class="record-list">
-        <view class="record-card" wx:for="{{records}}" wx:key="id">
-            <view class="record-header">
-                <text class="record-date">{{item.date}}</text>
-                <text class="record-time">{{item.startTime}} - {{item.endTime}}</text>
+        <view class="record-card {{selectedIds.indexOf(item.id) > -1 ? 'selected' : ''}}" wx:for="{{records}}" wx:key="id">
+            <!-- 编辑模式下的选择框 -->
+            <view class="checkbox-area" wx:if="{{editing}}" bindtap="toggleSelect" data-id="{{item.id}}">
+                <view class="checkbox {{selectedIds.indexOf(item.id) > -1 ? 'checked' : ''}}">
+                    <text wx:if="{{selectedIds.indexOf(item.id) > -1}}">✓</text>
+                </view>
             </view>
-            <view class="record-body">
-                <view class="record-stat">
-                    <text class="stat-value">{{item.count}}</text>
-                    <text class="stat-label">次</text>
+
+            <view class="record-content" bindtap="{{editing ? 'toggleSelect' : ''}}" data-id="{{item.id}}">
+                <view class="record-header">
+                    <text class="record-date">{{item.date}}</text>
+                    <text class="record-time">{{item.startTime}} - {{item.endTime}}</text>
                 </view>
-                <view class="record-stat">
-                    <text class="stat-value">{{item.duration}}</text>
-                    <text class="stat-label">时长</text>
+                <view class="record-body">
+                    <view class="record-stat">
+                        <text class="stat-value">{{item.count}}</text>
+                        <text class="stat-label">次</text>
+                    </view>
+                    <view class="record-stat">
+                        <text class="stat-value">{{item.durationText || '--:--:--'}}</text>
+                        <text class="stat-label">时长</text>
+                    </view>
+                    <view class="record-stat">
+                        <text class="stat-value">{{item.calories}}</text>
+                        <text class="stat-label">千卡</text>
+                    </view>
                 </view>
-                <view class="record-stat">
-                    <text class="stat-value">{{item.calories}}</text>
-                    <text class="stat-label">千卡</text>
-                </view>
+            </view>
+
+            <!-- 非编辑模式下的单条删除按钮 -->
+            <view class="delete-area" wx:if="{{!editing}}" bindtap="deleteRecord" data-id="{{item.id}}">
+                <text class="delete-icon">🗑️</text>
             </view>
         </view>
 
         <view class="empty-state" wx:if="{{records.length === 0}}">
             <text class="empty-icon">📊</text>
             <text class="empty-text">暂无记录</text>
+            <text class="empty-hint">完成跳绳运动后记录会出现在这里</text>
         </view>
     </view>
 </view>
