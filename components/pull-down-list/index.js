@@ -7,7 +7,7 @@ Component({
     properties: {
         defaultOpen: {
             type: Boolean,
-            value: false,
+            value: true,
         },
         name: {
             type: String,

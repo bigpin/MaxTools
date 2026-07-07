@@ -65,21 +65,14 @@ Page({
     subscribing: false, // 订阅中
     unsubscribing: false, // 取消订阅中
     showTestButton: false, // 是否显示测试按钮（开发调试用）
-    testing: false // 测试发送中
+    testing: false, // 测试发送中
+    sortType: 'code' // 股票列表排序方式：code 代码 / rate 胜率 / signal 信号数 / heat 热度
   },
 
   onLoad() {
-    // 开发版、体验版：直接跳转首页，只有正式版放出来
-    try {
-      const envVersion = (wx.getAccountInfoSync() || {}).miniProgram?.envVersion || 'develop';
-      if (envVersion !== 'release') {
-        wx.redirectTo({ url: '/pages/index/index' });
-        return;
-      }
-    } catch (e) {}
     versionUtil.setNavigationBarTitleWithVersion('数据洞察');
-    // 正式版再校验云端开关
-    checkToolSwitchAndRedirect('data-insights').then((allowed) => {
+      // 统一开关校验：data-insights 现属受控工具，由本地「强制全部显示」开关统一控制
+      checkToolSwitchAndRedirect('data-insights').then((allowed) => {
       if (!allowed) return;
       this.loadSignals();
       this.checkSubscribeStatus();
@@ -100,6 +93,67 @@ Page({
 
   onReachBottom() {
     // 滑动到底部不做任何操作（已移除分页功能）
+  },
+
+  /**
+   * 按当前排序类型对股票数组排序（纯函数，返回新数组，不改变入参）
+   * code  -> 股票代码升序（默认）
+   * rate  -> 胜率降序
+   * signal-> 信号数降序
+   * heat  -> 交易热度降序
+   */
+  sortStocks(stocks) {
+    const type = this.data.sortType || 'code';
+    const arr = (stocks || []).slice();
+    arr.sort((a, b) => {
+      if (type === 'rate') {
+        const va = Number(a.overall_success_rate) || 0;
+        const vb = Number(b.overall_success_rate) || 0;
+        if (vb !== va) return vb - va;
+        return a.stock_code.localeCompare(b.stock_code);
+      }
+      if (type === 'signal') {
+        const va = (a.signals && a.signals.length) || 0;
+        const vb = (b.signals && b.signals.length) || 0;
+        if (vb !== va) return vb - va;
+        return a.stock_code.localeCompare(b.stock_code);
+      }
+      if (type === 'heat') {
+        const va = (a.trade_heat_score != null) ? a.trade_heat_score : -1;
+        const vb = (b.trade_heat_score != null) ? b.trade_heat_score : -1;
+        if (vb !== va) return vb - va;
+        return a.stock_code.localeCompare(b.stock_code);
+      }
+      // 默认：股票代码升序
+      return a.stock_code.localeCompare(b.stock_code);
+    });
+    return arr;
+  },
+
+  /**
+   * 应用当前排序到页面所有已加载的股票
+   * 覆盖：主列表 currentPageData 与已展开加载的其他日期 otherDatesData
+   */
+  applySort() {
+    const currentPageData = (this.data.currentPageData || []).map(group => ({
+      ...group,
+      stocks: this.sortStocks(group.stocks || [])
+    }));
+    const otherDatesData = (this.data.otherDatesData || []).map(group =>
+      (group.loaded && group.stocks)
+        ? { ...group, stocks: this.sortStocks(group.stocks) }
+        : group
+    );
+    this.setData({ currentPageData, otherDatesData });
+  },
+
+  /**
+   * 切换排序方式（点击排序栏）
+   */
+  onSortChange(e) {
+    const sort = e.currentTarget.dataset.sort;
+    if (!sort || sort === this.data.sortType) return;
+    this.setData({ sortType: sort }, () => this.applySort());
   },
 
   /**
@@ -159,15 +213,16 @@ Page({
             total_signal_count: summary.total_signal_count || 0,
             trade_heat_score: summary.trade_heat_score,
             trade_heat_max: summary.trade_heat_max,
+            // 风控信息（来自 stock_summary，upload_report.py 已写入云端）
+            stop_loss: summary.stop_loss,
+            suggested_exit: summary.suggested_exit,
             tradeHeat: this.buildTradeHeatDisplay(summary),
             signals: [] // 稍后从signal_event补充
           };
         }
       });
       
-      const stocks = Object.values(stockMap).sort((a, b) => 
-        a.stock_code.localeCompare(b.stock_code)
-      );
+      const stocks = this.sortStocks(Object.values(stockMap));
       
       // 收集所有report_id
       const reportIds = stocks.map(s => s.report_id).filter(Boolean);
@@ -248,6 +303,9 @@ Page({
         }
       }
       
+      // 补充风控信息（止损位 / 建议退出 / 当天收盘价）
+      stocks.forEach(stock => this.enrichStockRiskInfo(stock));
+
       // 构建当前页数据
       const currentPageData = [{
         date: latestDate,
@@ -358,6 +416,9 @@ Page({
           total_signal_count: summary.total_signal_count || 0,
           trade_heat_score: summary.trade_heat_score,
           trade_heat_max: summary.trade_heat_max,
+          // 风控信息
+          stop_loss: summary.stop_loss,
+          suggested_exit: summary.suggested_exit,
           tradeHeat: this.buildTradeHeatDisplay(summary),
           signals: [] // 稍后从signal_event补充
         };
@@ -496,6 +557,10 @@ Page({
    */
   toggleCardExpand(e) {
     const cardId = e.currentTarget.dataset.id;
+    // 已订阅用户每次展开/收起卡片时，顺手再收割一次下发额度（用户已勾选「总是保持」时为静默，支撑持续推送）
+    if (this.data.isSubscribed) {
+      this.silentRequestSubscribe();
+    }
     const expandedCards = { ...this.data.expandedCards };
     
     if (expandedCards[cardId]) {
@@ -686,15 +751,16 @@ Page({
             total_signal_count: summary.total_signal_count || 0,
             trade_heat_score: summary.trade_heat_score,
             trade_heat_max: summary.trade_heat_max,
+            // 风控信息（来自 stock_summary，upload_report.py 已写入云端）
+            stop_loss: summary.stop_loss,
+            suggested_exit: summary.suggested_exit,
             tradeHeat: this.buildTradeHeatDisplay(summary),
             signals: [] // 稍后从signal_event补充
           };
         }
       });
       
-      const stocks = Object.values(stockMap).sort((a, b) => 
-        a.stock_code.localeCompare(b.stock_code)
-      );
+      const stocks = this.sortStocks(Object.values(stockMap));
       
       // 收集所有report_id
       const reportIds = stocks.map(s => s.report_id).filter(Boolean);
@@ -769,6 +835,9 @@ Page({
         });
       }
       
+      // 补充风控信息（止损位 / 建议退出 / 当天收盘价）
+      stocks.forEach(stock => this.enrichStockRiskInfo(stock));
+
       // 更新otherDatesData中该日期的数据
       const otherDatesData = this.data.otherDatesData.map(item => {
         if (item.date === date) {
@@ -804,6 +873,13 @@ Page({
    * @param {object} summary 含 trade_heat_score、trade_heat_max（可为 null）
    */
   buildTradeHeatDisplay(summary) {
+    // 交易热度等级 → 指标条背景/文字配色（热度越高颜色越暖）
+    const HEAT_PILL = {
+      none: { bg: '#f1f1f1', color: '#9e9e9e' },
+      low:  { bg: '#e6f1fb', color: '#0277bd' },
+      mid:  { bg: '#fdecdc', color: '#ef6c00' },
+      high: { bg: '#fdeaea', color: '#c62828' }
+    };
     const rawScore = summary && summary.trade_heat_score;
     const rawMax = summary && summary.trade_heat_max;
     const score = rawScore == null || rawScore === '' ? null : Number(rawScore);
@@ -814,7 +890,9 @@ Page({
         scoreText: '—',
         tagText: '暂无',
         tagColor: '#9e9e9e',
-        level: 'none'
+        level: 'none',
+        heatBg: HEAT_PILL.none.bg,
+        heatColor: HEAT_PILL.none.color
       };
     }
     const ratio = Math.min(1, Math.max(0, score / max));
@@ -834,13 +912,52 @@ Page({
       tagText = '活跃';
       tagColor = '#c62828';
     }
+    const pill = HEAT_PILL[level];
     return {
       hasData: true,
       scoreText: `${score}/${max}`,
       tagText,
       tagColor,
-      level
+      level,
+      heatBg: pill.bg,
+      heatColor: pill.color
     };
+  },
+
+  /**
+   * 为股票卡片补充风控信息：止损位 / 建议退出 / 当天收盘价
+   * @param {object} stock 股票卡片对象（需已含 stop_loss / suggested_exit / signals）
+   */
+  enrichStockRiskInfo(stock) {
+    // 止损位
+    const sl = stock.stop_loss;
+    stock.hasStopLoss = (sl != null && sl !== '');
+    stock.stopLoss = stock.hasStopLoss ? sl : null;
+
+    // 建议退出：拆成多行展示（报告原文以 " / " 分隔）
+    const se = stock.suggested_exit;
+    stock.suggestedExitLines = (se && typeof se === 'string' && se.trim())
+      ? se.split(' / ').map(s => s.trim()).filter(Boolean)
+      : [];
+
+    // 当天收盘价：优先取信号日期 == 报告日期的收盘价，否则回退到最新一条有收盘价的信号
+    stock.dayClose = this.pickDayClose(stock);
+    stock.hasDayClose = (stock.dayClose != null);
+  },
+
+  /**
+   * 取股票「当天收盘价」：优先 signal_date == 报告日期 的收盘价（已按 signal_date 倒序）；
+   * 若该日无信号，则回退到最新一条有收盘价的信号。无收盘价为 null。
+   */
+  pickDayClose(stock) {
+    const signals = stock.signals || [];
+    if (signals.length === 0) return null;
+    const sameDay = signals.find(s => s.signal_date === stock.date && s.close != null);
+    if (sameDay) return sameDay.close;
+    for (let i = 0; i < signals.length; i++) {
+      if (signals[i].close != null) return signals[i].close;
+    }
+    return null;
   },
 
   /**
@@ -1025,25 +1142,13 @@ Page({
       console.log(`订阅状态: ${subscribeStatus}`);
       
       if (subscribeStatus === 'reject' || subscribeStatus === 'ban') {
-        wx.showModal({
-          title: '订阅失败',
-          content: subscribeStatus === 'ban' 
-            ? '您已在小程序设置中关闭了订阅消息，请在微信小程序设置中重新开启'
-            : '您拒绝了订阅授权，无法接收推送通知',
-          showCancel: false,
-          confirmText: '知道了'
-        });
         this.setData({ subscribing: false });
         return;
       }
       
-      // 如果用户没有授权（'accept' 以外的状态），也提示
+      // 如果用户没有授权（'accept' 以外的状态）
       if (subscribeStatus !== 'accept') {
         console.warn('订阅状态异常:', subscribeStatus);
-        wx.showToast({
-          title: '订阅授权异常，请重试',
-          icon: 'none'
-        });
         this.setData({ subscribing: false });
         return;
       }
@@ -1106,10 +1211,6 @@ Page({
       });
     } catch (error) {
       console.error('订阅失败:', error);
-      wx.showToast({
-        title: '订阅失败，请重试',
-        icon: 'none'
-      });
       this.setData({ subscribing: false });
     }
   },
@@ -1166,10 +1267,6 @@ Page({
       });
     } catch (error) {
       console.error('取消订阅失败:', error);
-      wx.showToast({
-        title: '取消订阅失败，请重试',
-        icon: 'none'
-      });
       this.setData({ unsubscribing: false });
     }
   },

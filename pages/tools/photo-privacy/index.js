@@ -24,16 +24,9 @@ Page({
     },
 
     onLoad() {
-        // 体验版：不读开关，直接跳转首页
-        try {
-            const envVersion = (wx.getAccountInfoSync() || {}).miniProgram?.envVersion || 'develop';
-            if (envVersion === 'trial') {
-                wx.redirectTo({ url: '/pages/index/index' });
-                return;
-            }
-        } catch (e) {}
         versionUtil.setNavigationBarTitleWithVersion('隐私清除器');
-        // 正式版再校验云端开关
+        // 统一开关 + 版本逻辑校验：
+        //   开关开启 → 全部放开（含体验版）；开关关闭 → 开发版/体验版不展示，正式版按记录
         checkToolSwitchAndRedirect('photo-privacy').then((allowed) => {
             if (!allowed) return;
         });

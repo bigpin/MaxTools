@@ -6,7 +6,7 @@
         <t-icon name="notification" size="32rpx" color="#d32f2f" />
         <view class="subscribe-text-wrapper">
           <text class="subscribe-title">数据洞察订阅</text>
-          <text class="subscribe-desc">{{isSubscribed ? '已订阅，每日自动推送最新洞察' : '订阅后每日自动推送最新数据洞察'}}</text>
+          <text class="subscribe-desc">{{isSubscribed ? '已订阅，下次数据更新将推送一次' : '订阅后，下次数据更新将推送一次洞察'}}</text>
         </view>
       </view>
       <t-button 
@@ -32,7 +32,7 @@
     <!-- 订阅提示 -->
     <view class="subscribe-tip">
       <t-icon name="info-circle" size="24rpx" color="#ff9800" />
-      <text class="subscribe-tip-text">建议在授权弹窗中勾选「总是保持以上选择」以持续接收推送</text>
+      <text class="subscribe-tip-text">建议勾选「总是保持以上选择」，授权后无需重复操作即可持续接收推送</text>
     </view>
   </view>
 
@@ -72,6 +72,16 @@
 
   <!-- 信号列表 -->
   <view wx:else class="signals-list">
+    <!-- 排序工具栏 -->
+    <view class="sort-bar">
+      <text class="sort-bar-label">排序</text>
+      <view class="sort-options">
+        <view class="sort-option {{sortType === 'code' ? 'active' : ''}}" bindtap="onSortChange" data-sort="code">代码</view>
+        <view class="sort-option {{sortType === 'rate' ? 'active' : ''}}" bindtap="onSortChange" data-sort="rate">胜率</view>
+        <view class="sort-option {{sortType === 'signal' ? 'active' : ''}}" bindtap="onSortChange" data-sort="signal">信号数</view>
+        <view class="sort-option {{sortType === 'heat' ? 'active' : ''}}" bindtap="onSortChange" data-sort="heat">热度</view>
+      </view>
+    </view>
     <view 
       wx:for="{{currentPageData}}" 
       wx:key="date"
@@ -102,7 +112,7 @@
           wx:key="stock_code"
           class="stock-card"
         >
-          <!-- 卡片头部（点击展开/收起） -->
+          <!-- 卡片头部：第一行 股票名称（左）+ 交易热度（右） -->
           <view 
             class="card-header"
             bindtap="toggleCardExpand"
@@ -114,40 +124,54 @@
               data-code="{{stock.stock_code}}"
             >
               <text class="stock-name">{{stock.stock_name}}</text>
-              <text class="stock-code">{{stock.stock_code}}</text>
+              <text class="stock-code">{{stock.stock_code}}　› 详情</text>
             </view>
-            <view class="card-header-right">
-              <view class="stock-summary-card">
-                <view class="summary-item summary-item-fixed">
-                  <text class="summary-label">整体胜率</text>
-                  <text class="summary-value success-rate-highlight">{{stock.overall_success_rate || 0}}%</text>
-                </view>
-                <view class="summary-divider"></view>
-                <view class="summary-item summary-item-fixed">
-                  <text class="summary-label">特征数</text>
-                  <text class="summary-value feature-count-value">{{stock.signals.length}}</text>
-                </view>
-                <view class="summary-divider" wx:if="{{stock.tradeHeat}}"></view>
-                <view class="summary-item-heat-row" wx:if="{{stock.tradeHeat}}">
-                  <text class="summary-label heat-label-side">交易热度</text>
-                  <view class="summary-value-block-heat">
-                    <text class="summary-value trade-heat-value" style="color: {{stock.tradeHeat.hasData ? stock.tradeHeat.tagColor : '#8c8c8c'}};">{{stock.tradeHeat.scoreText}}</text>
-                    <text wx:if="{{stock.tradeHeat.tagText}}" class="trade-heat-inline-tag" style="color: {{stock.tradeHeat.tagColor}};">{{stock.tradeHeat.tagText}}</text>
-                  </view>
-                </view>
-              </view>
-              <view class="card-expand-icon">
-                <t-icon 
-                  name="{{expandedCards[stock.stock_code + '_' + item.date] ? 'chevron-up' : 'chevron-down'}}" 
-                  size="32rpx" 
-                  color="#999" 
-                />
-              </view>
+            <view class="metric-pill metric-pill-heat" style="background:{{stock.tradeHeat.heatBg}};" wx:if="{{stock.tradeHeat}}">
+              <text class="metric-pill-label">交易热度</text>
+              <text class="metric-pill-value" style="color:{{stock.tradeHeat.heatColor}};">{{stock.tradeHeat.tagText}} {{stock.tradeHeat.scoreText}}</text>
+            </view>
+            <view class="card-expand-icon">
+              <t-icon 
+                name="{{expandedCards[stock.stock_code + '_' + item.date] ? 'chevron-up' : 'chevron-down'}}" 
+                size="32rpx" 
+                color="#999" 
+              />
+            </view>
+          </view>
+
+          <!-- 第二行：收盘价 / 止损位 / 胜率 / 信号数 -->
+          <view class="stock-metrics-bar">
+            <view class="metric-pill metric-pill-close" wx:if="{{stock.hasDayClose}}">
+              <text class="metric-pill-label">收盘价</text>
+              <text class="metric-pill-value">¥{{stock.dayClose}}</text>
+            </view>
+            <view class="metric-pill metric-pill-stop" wx:if="{{stock.hasStopLoss}}">
+              <text class="metric-pill-label">止损位</text>
+              <text class="metric-pill-value">¥{{stock.stopLoss}}</text>
+            </view>
+            <view class="metric-pill metric-pill-rate">
+              <text class="metric-pill-label">胜率</text>
+              <text class="metric-pill-value">{{stock.overall_success_rate || 0}}%</text>
+            </view>
+            <view class="metric-pill metric-pill-count">
+              <text class="metric-pill-label">信号数</text>
+              <text class="metric-pill-value">{{stock.signals.length}}</text>
             </view>
           </view>
 
           <!-- 展开后的详情 -->
           <view wx:if="{{expandedCards[stock.stock_code + '_' + item.date]}}" class="card-detail-content">
+            <!-- 风控信息：建议退出（收盘价/止损位已提到卡片头部展示） -->
+            <view wx:if="{{stock.suggestedExitLines.length}}" class="risk-card">
+              <view class="risk-card-title">风控信息</view>
+              <view class="risk-exit" wx:if="{{stock.suggestedExitLines.length}}">
+                <text class="risk-cell-label risk-exit-label">建议退出</text>
+                <view class="risk-exit-lines">
+                  <text wx:for="{{stock.suggestedExitLines}}" wx:for-item="exitLine" wx:key="*this" class="risk-exit-line">{{exitLine}}</text>
+                </view>
+              </view>
+            </view>
+
             <!-- 特征类型统计 -->
             <view wx:if="{{stock.signalTypeStats}}" class="signal-type-stats">
               <view 
@@ -160,15 +184,15 @@
                 <text class="stat-count">{{stat.count}}个</text>
               </view>
             </view>
-            
+
             <!-- 特征列表 -->
             <view class="signals-list-content">
-              <view 
-                wx:for="{{stock.signals}}"
-                wx:for-item="signal"
-                wx:key="_id"
-                class="signal-item"
-              >
+                <view 
+                  wx:for="{{stock.signals}}"
+                  wx:for-item="signal"
+                  wx:key="_id"
+                  class="signal-item"
+                >
                 <view class="signal-item-header">
                   <view class="signal-type-badge">
                     <t-tag 
@@ -255,7 +279,7 @@
             wx:key="stock_code"
             class="stock-card"
           >
-            <!-- 卡片头部（点击展开/收起） -->
+            <!-- 卡片头部：第一行 股票名称（左）+ 交易热度（右） -->
             <view 
               class="card-header"
               bindtap="toggleCardExpand"
@@ -267,40 +291,54 @@
                 data-code="{{stock.stock_code}}"
               >
                 <text class="stock-name">{{stock.stock_name}}</text>
-                <text class="stock-code">{{stock.stock_code}}</text>
+                <text class="stock-code">{{stock.stock_code}}　› 详情</text>
               </view>
-              <view class="card-header-right">
-                <view class="stock-summary-card">
-                  <view class="summary-item summary-item-fixed">
-                    <text class="summary-label">整体胜率</text>
-                    <text class="summary-value success-rate-highlight">{{stock.overall_success_rate || 0}}%</text>
-                  </view>
-                  <view class="summary-divider"></view>
-                  <view class="summary-item summary-item-fixed">
-                    <text class="summary-label">特征数</text>
-                    <text class="summary-value feature-count-value">{{stock.signals.length}}</text>
-                  </view>
-                  <view class="summary-divider" wx:if="{{stock.tradeHeat}}"></view>
-                  <view class="summary-item-heat-row" wx:if="{{stock.tradeHeat}}">
-                    <text class="summary-label heat-label-side">交易热度</text>
-                    <view class="summary-value-block-heat">
-                      <text class="summary-value trade-heat-value" style="color: {{stock.tradeHeat.hasData ? stock.tradeHeat.tagColor : '#8c8c8c'}};">{{stock.tradeHeat.scoreText}}</text>
-                      <text wx:if="{{stock.tradeHeat.tagText}}" class="trade-heat-inline-tag" style="color: {{stock.tradeHeat.tagColor}};">{{stock.tradeHeat.tagText}}</text>
-                    </view>
-                  </view>
-                </view>
-                <view class="card-expand-icon">
-                  <t-icon 
-                    name="{{expandedCards[stock.stock_code + '_' + dateItem.date] ? 'chevron-up' : 'chevron-down'}}" 
-                    size="32rpx" 
-                    color="#999" 
-                  />
-                </view>
+              <view class="metric-pill metric-pill-heat" style="background:{{stock.tradeHeat.heatBg}};" wx:if="{{stock.tradeHeat}}">
+                <text class="metric-pill-label">交易热度</text>
+                <text class="metric-pill-value" style="color:{{stock.tradeHeat.heatColor}};">{{stock.tradeHeat.tagText}} {{stock.tradeHeat.scoreText}}</text>
+              </view>
+              <view class="card-expand-icon">
+                <t-icon 
+                  name="{{expandedCards[stock.stock_code + '_' + dateItem.date] ? 'chevron-up' : 'chevron-down'}}" 
+                  size="32rpx" 
+                  color="#999" 
+                />
+              </view>
+            </view>
+
+            <!-- 第二行：收盘价 / 止损位 / 胜率 / 信号数 -->
+            <view class="stock-metrics-bar">
+              <view class="metric-pill metric-pill-close" wx:if="{{stock.hasDayClose}}">
+                <text class="metric-pill-label">收盘价</text>
+                <text class="metric-pill-value">¥{{stock.dayClose}}</text>
+              </view>
+              <view class="metric-pill metric-pill-stop" wx:if="{{stock.hasStopLoss}}">
+                <text class="metric-pill-label">止损位</text>
+                <text class="metric-pill-value">¥{{stock.stopLoss}}</text>
+              </view>
+              <view class="metric-pill metric-pill-rate">
+                <text class="metric-pill-label">胜率</text>
+                <text class="metric-pill-value">{{stock.overall_success_rate || 0}}%</text>
+              </view>
+              <view class="metric-pill metric-pill-count">
+                <text class="metric-pill-label">信号数</text>
+                <text class="metric-pill-value">{{stock.signals.length}}</text>
               </view>
             </view>
 
             <!-- 展开后的详情 -->
             <view wx:if="{{expandedCards[stock.stock_code + '_' + dateItem.date]}}" class="card-detail-content">
+              <!-- 风控信息：建议退出（收盘价/止损位已提到卡片头部展示） -->
+              <view wx:if="{{stock.suggestedExitLines.length}}" class="risk-card">
+                <view class="risk-card-title">风控信息</view>
+                <view class="risk-exit" wx:if="{{stock.suggestedExitLines.length}}">
+                  <text class="risk-cell-label risk-exit-label">建议退出</text>
+                  <view class="risk-exit-lines">
+                    <text wx:for="{{stock.suggestedExitLines}}" wx:for-item="exitLine" wx:key="*this" class="risk-exit-line">{{exitLine}}</text>
+                  </view>
+                </view>
+              </view>
+
               <!-- 特征类型统计 -->
               <view wx:if="{{stock.signalTypeStats}}" class="signal-type-stats">
                 <view 

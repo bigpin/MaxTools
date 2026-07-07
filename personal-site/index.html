@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Max的工具宝藏 · 个人小程序官网</title>
+<style>
+  /* ===== Design tokens (verbatim from Ardot canvas) ===== */
+  :root {
+    --bg:            #0a0a1a;  /* deep navy base            */
+    --bg-features:   #0b0b1c;  /* features section bg       */
+    --bg-footer:     #07071a;  /* footer section bg         */
+    --phone-bg:      #131322;  /* phone mockup body         */
+
+    --purple:        #8b5cf6;  /* 财务 category accent      */
+    --cyan:          #06b6d4;  /* 图片 category accent      */
+    --green:         #10b981;  /* 生活 category accent      */
+    --cyan-bright:   #22d3ee;  /* eyebrow / arrow accent    */
+
+    --text-strong:   #f1f5f9;  /* H1 / titles              */
+    --text-1:        #e2e8f0;  /* card titles / logo       */
+    --text-2:        #cbd5e1;  /* nav links / labels       */
+    --text-3:        #94a3b8;  /* descriptions             */
+    --text-4:        #64748b;  /* captions / footer        */
+
+    --card-fill:     rgba(255,255,255,0.04);
+    --chip-purple:   rgba(139,92,246,0.18);
+    --chip-cyan:     rgba(6,182,212,0.18);
+    --chip-green:    rgba(16,185,129,0.18);
+
+    --grad-cta:      linear-gradient(90deg, #8b5cf6 0%, #06b6d4 100%);
+
+    --content-w: 1200px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: "Sarasa Gothic SC", "PingFang SC", "Microsoft YaHei",
+                 "Noto Sans SC", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text-2);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  .content {
+    width: 100%;
+    max-width: var(--content-w);
+    margin: 0 auto;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  /* canvas inner width is exactly 1200 (cards are 280px); add side
+     breathing room only when the viewport is narrower than the canvas */
+  @media (max-width: 1240px) {
+    .content { padding-left: 24px; padding-right: 24px; }
+  }
+
+  /* ===== Aurora halos (radial gradients, bleed off-edge) ===== */
+  .halo {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(40px);
+    z-index: 0;
+  }
+
+  /* ===== Navbar (72px, glass) ===== */
+  .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    height: 72px;
+    background: rgba(10,10,26,0.72);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .navbar .content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-1);
+    letter-spacing: .2px;
+  }
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+  }
+  .nav-links a {
+    font-size: 15px;
+    color: var(--text-2);
+    text-decoration: none;
+    transition: color .2s ease;
+  }
+  .nav-links a:hover { color: var(--text-strong); }
+  .nav-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 22px;
+    border-radius: 99px;
+    background: var(--grad-cta);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: filter .2s ease;
+  }
+  .nav-cta:hover { filter: brightness(1.08); }
+
+  /* ===== Hero ===== */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 100px 0;
+    background: var(--bg);
+  }
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 64px;
+  }
+  .hero-text {
+    width: 620px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .hero-badge {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.08);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-2);
+  }
+  .badge-dot {
+    width: 8px; height: 8px;
+    border-radius: 99px;
+    background: var(--cyan);
+  }
+  .hero-title {
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1.05;
+    color: var(--text-strong);
+  }
+  .hero-sub {
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--text-3);
+  }
+  .hero-ctas {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 28px;
+    border-radius: 99px;
+    background: var(--grad-cta);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: filter .2s ease;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 28px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-1);
+    font-size: 17px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background .2s ease;
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,0.10); }
+  .trust-line {
+    font-size: 13px;
+    color: var(--text-4);
+  }
+
+  /* Phone mockup */
+  .phone {
+    position: relative;
+    z-index: 1;
+    width: 340px;
+    height: 680px;
+    border-radius: 40px;
+    background: var(--phone-bg);
+    padding: 28px 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+  }
+  .notch {
+    width: 120px; height: 22px;
+    border-radius: 99px;
+    background: rgba(0,0,0,0.45);
+  }
+  .phone-title {
+    font-size: 18px; font-weight: 700;
+    color: var(--text-strong);
+  }
+  .phone-sub {
+    font-size: 12px;
+    color: var(--text-4);
+    margin-top: -10px;
+  }
+  .tile-grid {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .tile-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .tile {
+    height: 96px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.05);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .tile-icon { font-size: 28px; line-height: 1; }
+  .tile-label { font-size: 12px; color: var(--text-2); }
+
+  /* ===== Features ===== */
+  .features {
+    position: relative;
+    overflow: hidden;
+    padding: 100px 0;
+    background: var(--bg-features);
+  }
+  .features-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 48px;
+  }
+  .section-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+  }
+  .eyebrow {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cyan-bright);
+    letter-spacing: .5px;
+  }
+  .section-title {
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--text-strong);
+  }
+  .section-sub {
+    font-size: 17px;
+    color: var(--text-3);
+    max-width: 760px;
+  }
+  .feature-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    align-items: stretch;
+  }
+  .feature-card {
+    border-radius: 24px;
+    background: var(--card-fill);
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: background .2s ease, transform .2s ease;
+  }
+  .feature-card:hover { background: rgba(255,255,255,0.07); transform: translateY(-4px); }
+  .icon-chip {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+  .chip-purple { background: var(--chip-purple); }
+  .chip-cyan   { background: var(--chip-cyan); }
+  .chip-green  { background: var(--chip-green); }
+  .feature-title { font-size: 18px; font-weight: 700; color: var(--text-1); }
+  .feature-desc { font-size: 14px; line-height: 1.6; color: var(--text-3); }
+
+  /* ===== Tools ===== */
+  .tools {
+    position: relative;
+    overflow: hidden;
+    padding: 100px 0;
+    background: var(--bg);
+  }
+  .tools-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 56px;
+  }
+  .cat-block {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .cat-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cat-dot { width: 10px; height: 10px; border-radius: 99px; }
+  .cat-name { font-size: 20px; font-weight: 700; }
+  .cat-financial { color: var(--purple); }
+  .cat-image     { color: var(--cyan); }
+  .cat-life      { color: var(--green); }
+  .dot-purple { background: var(--purple); }
+  .dot-cyan   { background: var(--cyan); }
+  .dot-green  { background: var(--green); }
+
+  .tool-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    justify-content: flex-start;
+  }
+  .tool-card {
+    width: 280px;
+    height: 200px;
+    border-radius: 20px;
+    background: var(--card-fill);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: background .2s ease, transform .2s ease;
+  }
+  .tool-card:hover { background: rgba(255,255,255,0.07); transform: translateY(-4px); }
+  .tool-name { font-size: 17px; font-weight: 700; color: var(--text-1); }
+  .tool-desc { font-size: 13px; line-height: 1.5; color: var(--text-3); }
+
+  /* featured full-width card (图片) */
+  .tool-featured {
+    width: 100%;
+    height: 120px;
+    border-radius: 20px;
+    background: var(--card-fill);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    transition: background .2s ease;
+  }
+  .tool-featured:hover { background: rgba(255,255,255,0.07); }
+  .featured-left { display: flex; align-items: center; gap: 16px; }
+  .featured-chip { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; background: var(--chip-cyan); }
+  .featured-text { display: flex; flex-direction: column; gap: 6px; }
+  .featured-name { font-size: 18px; font-weight: 700; color: var(--text-1); }
+  .featured-desc { font-size: 14px; color: var(--text-3); }
+  .featured-arrow { font-size: 15px; font-weight: 600; color: var(--cyan-bright); white-space: nowrap; }
+
+  /* ===== Contact / CTA ===== */
+  .contact {
+    padding: 100px 0 80px;
+    background: var(--bg);
+  }
+  .contact-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+  }
+  .contact-panel {
+    width: 100%;
+    border-radius: 28px;
+    background: var(--card-fill);
+    padding: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 48px;
+  }
+  .contact-left { display: flex; flex-direction: column; gap: 20px; align-items: flex-start; flex: 1; }
+  .contact-title { font-size: 36px; font-weight: 700; color: var(--text-strong); }
+  .contact-sub { font-size: 16px; line-height: 1.6; color: var(--text-3); }
+  .contact-right { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .qr {
+    width: 180px; height: 180px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qr-text { font-size: 13px; color: var(--text-4); }
+  .qr-label { font-size: 13px; color: var(--text-3); }
+
+  /* ===== Footer ===== */
+  .footer {
+    padding: 48px 0;
+    background: var(--bg-footer);
+  }
+  .footer-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .footer-left { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .footer-logo { font-size: 18px; font-weight: 700; color: var(--text-1); }
+  .footer-tag { font-size: 13px; color: var(--text-4); }
+  .footer-links { display: flex; gap: 28px; align-items: center; }
+  .footer-links a { font-size: 14px; color: var(--text-2); text-decoration: none; transition: color .2s ease; }
+  .footer-links a:hover { color: var(--text-strong); }
+  .footer-bottom {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .footer-bottom span { font-size: 13px; color: var(--text-4); }
+
+  /* ===== Responsive (stack on smaller viewports) ===== */
+  @media (max-width: 1100px) {
+    .hero-inner { flex-direction: column; gap: 48px; }
+    .hero-text { width: 100%; }
+    .nav-links { display: none; }
+    .feature-grid { grid-template-columns: repeat(2, 1fr); }
+    .tool-card { width: calc(50% - 12px); height: auto; min-height: 180px; }
+    .contact-panel { flex-direction: column; text-align: center; padding: 40px; }
+    .contact-left { align-items: center; }
+  }
+  @media (max-width: 680px) {
+    .hero-title { font-size: 40px; }
+    .section-title { font-size: 30px; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .tool-card { width: 100%; }
+    .footer-top { flex-direction: column; gap: 20px; align-items: flex-start; }
+    .footer-bottom { flex-direction: column; gap: 10px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ===================== NAVBAR ===================== -->
+  <nav class="navbar">
+    <div class="content">
+      <div class="logo">🧰 Max的工具宝藏</div>
+      <div class="nav-links">
+        <a href="#home">首页</a>
+        <a href="#tools">工具</a>
+        <a href="#features">关于</a>
+        <a href="#contact">联系</a>
+      </div>
+      <a class="nav-cta" href="#contact">在微信中打开</a>
+    </div>
+  </nav>
+
+  <!-- ===================== HERO ===================== -->
+  <header class="hero" id="home">
+    <div class="halo" style="width:640px;height:640px;left:-140px;top:-60px;
+         background:radial-gradient(circle, rgba(139,92,246,0.5) 0%, rgba(139,92,246,0) 70%);"></div>
+    <div class="halo" style="width:560px;height:560px;left:780px;top:140px;
+         background:radial-gradient(circle, rgba(6,182,212,0.45) 0%, rgba(6,182,212,0) 70%);"></div>
+
+    <div class="content hero-inner">
+      <div class="hero-text">
+        <span class="hero-badge"><span class="badge-dot"></span>微信小程序 · 个人工具箱</span>
+        <h1 class="hero-title">把生活里的琐碎，<br/>收进一个工具箱</h1>
+        <p class="hero-sub">个税、汇率、纪念日、单位换算、今天吃什么……10+ 实用工具，无需下载，打开微信即用。</p>
+        <div class="hero-ctas">
+          <a class="btn-primary" href="#contact">在微信中打开</a>
+          <a class="btn-secondary" href="#tools">浏览全部工具</a>
+        </div>
+        <p class="trust-line">微信云开发驱动 · 数据本地优先 · 隐私不出端</p>
+      </div>
+
+      <!-- phone mockup -->
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="phone-title">Max的工具宝藏</div>
+        <div class="phone-sub">工具箱</div>
+        <div class="tile-grid">
+          <div class="tile-row">
+            <div class="tile"><div class="tile-icon">💰</div><div class="tile-label">个税计算</div></div>
+            <div class="tile"><div class="tile-icon">💱</div><div class="tile-label">汇率转换</div></div>
+          </div>
+          <div class="tile-row">
+            <div class="tile"><div class="tile-icon">📅</div><div class="tile-label">纪念日</div></div>
+            <div class="tile"><div class="tile-icon">📐</div><div class="tile-label">单位换算</div></div>
+          </div>
+          <div class="tile-row">
+            <div class="tile"><div class="tile-icon">🍜</div><div class="tile-label">今天吃什么</div></div>
+            <div class="tile"><div class="tile-icon">🤸</div><div class="tile-label">跳绳</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== FEATURES ===================== -->
+  <section class="features" id="features">
+    <div class="halo" style="width:600px;height:600px;left:420px;top:-120px;
+         background:radial-gradient(circle, rgba(16,185,129,0.32) 0%, rgba(16,185,129,0) 70%);"></div>
+
+    <div class="content features-inner">
+      <div class="section-header">
+        <span class="eyebrow">为什么是它</span>
+        <h2 class="section-title">一个工具箱，装下日常琐碎</h2>
+        <p class="section-sub">从财务到生活，10+ 工具随取随用，不占空间、不打扰。</p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="icon-chip chip-purple">☁️</div>
+          <div class="feature-title">微信云开发 · 零运维</div>
+          <div class="feature-desc">基于微信云开发，无需自建服务器，打开即用。</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon-chip chip-cyan">🔒</div>
+          <div class="feature-title">隐私优先</div>
+          <div class="feature-desc">照片隐私本地清除，数据不出端，安心使用。</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon-chip chip-green">📈</div>
+          <div class="feature-title">实时汇率与信号</div>
+          <div class="feature-desc">多币种汇率实时查询，股票信号订阅提醒。</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon-chip chip-purple">🔔</div>
+          <div class="feature-title">订阅消息提醒</div>
+          <div class="feature-desc">纪念日、还款日自动倒计时与消息提醒。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== TOOLS ===================== -->
+  <section class="tools" id="tools">
+    <div class="halo" style="width:560px;height:560px;left:60px;top:-80px;
+         background:radial-gradient(circle, rgba(16,185,129,0.28) 0%, rgba(16,185,129,0) 70%);"></div>
+
+    <div class="content tools-inner">
+      <div class="section-header">
+        <span class="eyebrow">工具箱</span>
+        <h2 class="section-title">总有一款，帮你省点事</h2>
+        <p class="section-sub">财务、图片、生活，三类 10+ 工具，覆盖日常大多数场景。</p>
+      </div>
+
+      <!-- 财务 -->
+      <div class="cat-block">
+        <div class="cat-header">
+          <span class="cat-dot dot-purple"></span>
+          <span class="cat-name cat-financial">财务工具</span>
+        </div>
+        <div class="tool-grid">
+          <div class="tool-card">
+            <div class="icon-chip chip-purple">💰</div>
+            <div class="tool-name">个税计算器</div>
+            <div class="tool-desc">计算个人所得税，支持多个月份累计。</div>
+          </div>
+          <div class="tool-card">
+            <div class="icon-chip chip-purple">👔</div>
+            <div class="tool-name">年终奖计算器</div>
+            <div class="tool-desc">计算年终奖缴税金额，合理规划。</div>
+          </div>
+          <div class="tool-card">
+            <div class="icon-chip chip-purple">💱</div>
+            <div class="tool-name">汇率转换</div>
+            <div class="tool-desc">实时查询与转换多种货币汇率。</div>
+          </div>
+          <div class="tool-card">
+            <div class="icon-chip chip-purple">📊</div>
+            <div class="tool-name">数据洞察</div>
+            <div class="tool-desc">多维数据分析与趋势洞察。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 图片 -->
+      <div class="cat-block">
+        <div class="cat-header">
+          <span class="cat-dot dot-cyan"></span>
+          <span class="cat-name cat-image">图片工具</span>
+        </div>
+        <div class="tool-featured">
+          <div class="featured-left">
+            <div class="featured-chip">🖼️</div>
+            <div class="featured-text">
+              <div class="featured-name">照片隐私清除</div>
+              <div class="featured-desc">一键去除照片中的位置、时间、设备等隐私信息（EXIF）。</div>
+            </div>
+          </div>
+          <div class="featured-arrow">本地清除 · 隐私不出端 →</div>
+        </div>
+      </div>
+
+      <!-- 生活 -->
+      <div class="cat-block">
+        <div class="cat-header">
+          <span class="cat-dot dot-green"></span>
+          <span class="cat-name cat-life">生活工具</span>
+        </div>
+        <div class="tool-grid">
+          <div class="tool-card">
+            <div class="icon-chip chip-green">📏</div>
+            <div class="tool-name">单位换算器</div>
+            <div class="tool-desc">长度、面积、体积、重量等常用单位互转。</div>
+          </div>
+          <div class="tool-card">
+            <div class="icon-chip chip-green">📅</div>
+            <div class="tool-name">纪念日管家</div>
+            <div class="tool-desc">记录重要日期，自动倒计时与提醒。</div>
+          </div>
+          <div class="tool-card">
+            <div class="icon-chip chip-green">🔗</div>
+            <div class="tool-name">iOS 快捷方式</div>
+            <div class="tool-desc">收藏与打开 iOS 快捷方式，支持搜索。</div>
+          </div>
+        </div>
+        <div class="tool-grid">
+          <div class="tool-card">
+            <div class="icon-chip chip-green">🍜</div>
+            <div class="tool-name">今天吃什么</div>
+            <div class="tool-desc">选择困难症救星，随机帮你决定吃什么。</div>
+          </div>
+          <div class="tool-card">
+            <div class="icon-chip chip-green">🤸</div>
+            <div class="tool-name">跳绳计数器</div>
+            <div class="tool-desc">基于姿态估计的智能跳绳计数。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CONTACT / CTA ===================== -->
+  <section class="contact" id="contact">
+    <div class="content contact-inner">
+      <div class="contact-panel">
+        <div class="contact-left">
+          <h2 class="contact-title">打开微信，搜索就能用</h2>
+          <p class="contact-sub">在微信中搜索「Max的工具宝藏」，或扫码直达。无需下载，不占空间。</p>
+          <a class="btn-primary" href="#">在微信中打开</a>
+        </div>
+        <div class="contact-right">
+          <div class="qr"><span class="qr-text">二维码占位</span></div>
+          <span class="qr-label">微信扫一扫</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="footer">
+    <div class="content">
+      <div class="footer-top">
+        <div class="footer-left">
+          <div class="footer-logo">🧰 Max的工具宝藏</div>
+          <div class="footer-tag">把实用工具，装进口袋。</div>
+        </div>
+        <div class="footer-links">
+          <a href="#tools">工具</a>
+          <a href="#features">关于</a>
+          <a href="#contact">联系</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Max · 用微信小程序构建</span>
+        <span>隐私优先 · 数据本地优先</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

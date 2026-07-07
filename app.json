@@ -34,10 +34,5 @@
     "navigationBarTitleText": "Max的工具宝藏",
     "navigationBarTextStyle": "white"
   },
-  "permission": {
-    "scope.camera": {
-      "desc": "跳绳计数器需要使用摄像头来检测您的跳绳动作"
-    }
-  },
   "sitemapLocation": "sitemap.json"
 }

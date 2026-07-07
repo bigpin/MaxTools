@@ -10,6 +10,9 @@ cloud.init({
 
 const db = cloud.database();
 
+// 全局「强制全部显示」统一开关在 tools_switch 集合中的文档 ID
+const GLOBAL_FORCE_SHOW_ID = 'global';
+
 /**
  * 管理工具开关
  * 
@@ -19,9 +22,11 @@ const db = cloud.database();
  *   - 'clear_review': 清除审核版本号（审核通过后调用）
  *   - 'disable': 直接禁用工具
  *   - 'enable': 直接启用工具
+ *   - 'set_force_show': 设置全局「强制全部显示」统一开关（true/false），开启后跳过所有单工具过滤
  * 
  * @param {string} tool_id - 工具ID，如 'data-insights'
  * @param {string} version - 版本号（仅 set_review 时需要）
+ * @param {boolean} enabled - 布尔值（仅 set_force_show 时需要）
  * 
  * 示例调用：
  *   1. 查看状态: { action: 'list' }
@@ -29,11 +34,13 @@ const db = cloud.database();
  *   3. 审核通过: { action: 'clear_review', tool_id: 'data-insights' }
  *   4. 直接禁用: { action: 'disable', tool_id: 'data-insights' }
  *   5. 直接启用: { action: 'enable', tool_id: 'data-insights' }
+ *   6. 强制全部显示: { action: 'set_force_show', enabled: true }
+ *   7. 恢复按单工具过滤: { action: 'set_force_show', enabled: false }
  */
 exports.main = async (event, context) => {
-  const { action, tool_id, version } = event;
+  const { action, tool_id, version, enabled } = event;
   
-  console.log('收到请求:', { action, tool_id, version });
+  console.log('收到请求:', { action, tool_id, version, enabled });
   
   try {
     switch (action) {
@@ -64,16 +71,23 @@ exports.main = async (event, context) => {
         }
         return await setEnabled(tool_id, true);
       
+      case 'set_force_show':
+        if (typeof enabled !== 'boolean') {
+          return { success: false, error: '缺少 enabled 布尔参数（true/false）' };
+        }
+        return await setForceShowAll(enabled);
+      
       default:
         return {
           success: false,
-          error: '未知的 action，支持: list, set_review, clear_review, disable, enable',
+          error: '未知的 action，支持: list, set_review, clear_review, disable, enable, set_force_show',
           usage: {
             list: '查看所有开关状态',
             set_review: '设置审核版本号 { action: "set_review", tool_id: "data-insights", version: "1.0.5" }',
             clear_review: '清除审核版本号 { action: "clear_review", tool_id: "data-insights" }',
             disable: '直接禁用 { action: "disable", tool_id: "data-insights" }',
-            enable: '直接启用 { action: "enable", tool_id: "data-insights" }'
+            enable: '直接启用 { action: "enable", tool_id: "data-insights" }',
+            set_force_show: '全局「强制全部显示」开关 { action: "set_force_show", enabled: true }'
           }
         };
     }
@@ -82,6 +96,21 @@ exports.main = async (event, context) => {
     return { success: false, error: error.message || String(error) };
   }
 };
+
+// 设置全局「强制全部显示」统一开关
+async function setForceShowAll(enabled) {
+  await db.collection('tools_switch').doc(GLOBAL_FORCE_SHOW_ID).set({
+    data: {
+      tool_id: '__global__',
+      force_show_all: enabled,
+      updated_at: new Date()
+    }
+  });
+  return {
+    success: true,
+    message: `已${enabled ? '开启' : '关闭'}「强制全部显示」统一开关（${enabled ? '全部工具放开' : '恢复按单工具开关过滤'}）`
+  };
+}
 
 // 查看所有开关状态
 async function listSwitches() {

@@ -2,9 +2,7 @@
 // 我的页面
 
 const storage = require('../../utils/storage');
-const { TOOLS, TOOL_CATEGORY_NAMES, SWITCH_CONTROLLED_TOOLS, VALID_TOOL_IDS, TOOL_MAP } = require('../../utils/tools');
-
-const db = wx.cloud.database();
+const { TOOLS, TOOL_CATEGORY_NAMES, SWITCH_CONTROLLED_TOOLS, LOCAL_FORCE_SHOW_ALL, VALID_TOOL_IDS, TOOL_MAP } = require('../../utils/tools');
 
 Page({
     data: {
@@ -26,42 +24,33 @@ Page({
     },
 
     /**
-     * 从云数据库加载工具开关配置
+     * 工具开关配置（本地统一开关，不读云端）
+     * 逻辑：
+     *   - 本地「强制全部显示」开关（LOCAL_FORCE_SHOW_ALL = true）开启时，跳过所有过滤，全部工具放开
+     *   - 开关关闭（默认）：
+     *       · 开发版 / 体验版：不展示受控工具（disabledTools=受控列表）
+     *       · 正式版：直接展示全部受控工具（暂时不考虑云端开关）
      */
     async loadToolsSwitch() {
-        try {
-            let envVersion = 'develop';
-            try {
-                const accountInfo = wx.getAccountInfoSync();
-                envVersion = accountInfo.miniProgram.envVersion || 'develop';
-            } catch (e) {}
-
-            if (envVersion === 'develop') {
-                this.setData({ disabledTools: [...SWITCH_CONTROLLED_TOOLS] });
-                return;
-            }
-
-            if (envVersion === 'trial') {
-                this.setData({ disabledTools: [...SWITCH_CONTROLLED_TOOLS] });
-                return;
-            }
-
-            let disabledTools = [...SWITCH_CONTROLLED_TOOLS];
-            try {
-                const res = await db.collection('tools_switch').get();
-                const switches = res.data || [];
-                const allowedIds = switches
-                    .filter(s => SWITCH_CONTROLLED_TOOLS.includes(s.tool_id) && s.enabled !== false && !s.review_version)
-                    .map(s => s.tool_id);
-                disabledTools = SWITCH_CONTROLLED_TOOLS.filter(id => !allowedIds.includes(id));
-            } catch (e) {
-                console.warn('读取工具开关失败，保持默认禁用:', e);
-            }
-            this.setData({ disabledTools });
-        } catch (error) {
-            console.warn('加载工具开关失败:', error);
-            this.setData({ disabledTools: [...SWITCH_CONTROLLED_TOOLS] });
+        // 统一开关（本地）：强制全部显示，跳过过滤
+        if (LOCAL_FORCE_SHOW_ALL) {
+            this.setData({ disabledTools: [] });
+            return;
         }
+
+        let envVersion = 'develop';
+        try {
+            const accountInfo = wx.getAccountInfoSync();
+            envVersion = accountInfo.miniProgram.envVersion || 'develop';
+        } catch (e) {}
+
+        if (envVersion === 'develop' || envVersion === 'trial') {
+            this.setData({ disabledTools: [...SWITCH_CONTROLLED_TOOLS] });
+            return;
+        }
+
+        // 正式版：暂时不考虑云端开关，直接展示全部受控工具
+        this.setData({ disabledTools: [] });
     },
 
     // 加载收藏的工具列表
