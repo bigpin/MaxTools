@@ -443,21 +443,12 @@ page {
   opacity: 0.95;
 }
 
-/* 信号容器 */
+/* 信号容器（显隐由 WXML 的 wx:if 控制，不再使用 max-height 动画，避免内容被裁剪） */
 .signals-container {
   background-color: #fff;
   border-radius: 0 0 12rpx 12rpx;
   padding: 16rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-}
-
-.signals-container.show {
-  max-height: 10000rpx;
-  opacity: 1;
 }
 
 /* 股票卡片 */

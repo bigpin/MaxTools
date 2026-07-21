@@ -157,6 +157,31 @@ Page({
   },
 
   /**
+   * 分批拉取符合条件的全部记录
+   * 小程序端单次 get() 最多返回 20 条（limit 上限也是 20），必须通过 skip 分页循环拉取
+   * @param {object} where 查询条件
+   * @param {number} batchSize 每批条数（小程序端上限 20）
+   * @param {number} maxRecords 总条数安全上限，防止死循环
+   * @returns {Promise<Array>} 全部匹配记录
+   */
+  async fetchAllRecords(where, batchSize = 20, maxRecords = 2000) {
+    const all = [];
+    let skip = 0;
+    while (all.length < maxRecords) {
+      const res = await db.collection('stock_signals')
+        .where(where)
+        .skip(skip)
+        .limit(batchSize)
+        .get();
+      const batch = res.data || [];
+      all.push(...batch);
+      if (batch.length < batchSize) break;
+      skip += batch.length;
+    }
+    return all;
+  },
+
+  /**
    * 从云数据库加载信号数据
    * 首屏：先取最近一天日期 → 查该日 stock_summary → 查 signal_event → 立即渲染
    * 其他日期：渲染后再在后台拉取，最多 5 天，完成后更新界面
@@ -187,14 +212,11 @@ Page({
       console.log('最近日期:', latestDate);
       
       // 第二步：按最近一天日期查询该日所有 stock_summary
-      const summaryRes = await db.collection('stock_signals')
-        .where({
-          doc_type: 'stock_summary',
-          report_date: latestDate
-        })
-        .get();
-      
-      const latestSummaries = summaryRes.data || [];
+      // 注意：小程序端单次 get() 最多返回 20 条，需分批拉取
+      const latestSummaries = await this.fetchAllRecords({
+        doc_type: 'stock_summary',
+        report_date: latestDate
+      });
       console.log('最近一天的股票数:', latestSummaries.length);
       
       // 按股票代码分组处理（同一天同一只股票只保留一条）
@@ -238,15 +260,12 @@ Page({
       if (reportIds.length > 0) {
         try {
           // 并行查询所有 report_id 的信号数据（大幅提速）
+          // 使用分批拉取，避免单次 get() 20 条上限截断
           const signalPromises = reportIds.map(reportId => 
-            db.collection('stock_signals')
-              .where({
-                doc_type: 'signal_event',
-                report_id: reportId
-              })
-              .limit(100)
-              .get()
-              .then(res => res.data || [])
+            this.fetchAllRecords({
+              doc_type: 'signal_event',
+              report_id: reportId
+            })
               .catch(err => {
                 console.warn(`查询 ${reportId} 失败:`, err);
                 return [];
@@ -726,14 +745,11 @@ Page({
    */
   async loadOtherDate(date) {
     try {
-      // 按日期从 DB 查询该日的 stock_summary
-      const summaryRes = await db.collection('stock_signals')
-        .where({
-          doc_type: 'stock_summary',
-          report_date: date
-        })
-        .get();
-      const summaries = summaryRes.data || [];
+      // 按日期从 DB 查询该日的 stock_summary（分批拉取，突破单次 20 条上限）
+      const summaries = await this.fetchAllRecords({
+        doc_type: 'stock_summary',
+        report_date: date
+      });
       
       // 按股票代码分组处理（同一天同一只股票只保留一条）
       const stockMap = {};
@@ -769,19 +785,14 @@ Page({
       if (reportIds.length > 0) {
         const allSignals = [];
         
-        // 对每个report_id单独查询
+        // 对每个report_id单独查询（分批拉取，避免单次 get() 20 条上限截断）
         for (let i = 0; i < reportIds.length; i++) {
           const reportId = reportIds[i];
           try {
-            const signalRes = await db.collection('stock_signals')
-              .where({
-                doc_type: 'signal_event',
-                report_id: reportId
-              })
-              .limit(1000)
-              .get();
-            
-            const signals = signalRes.data || [];
+            const signals = await this.fetchAllRecords({
+              doc_type: 'signal_event',
+              report_id: reportId
+            });
             allSignals.push(...signals);
           } catch (error) {
             console.error(`查询 ${reportId} 失败:`, error);

@@ -106,7 +106,7 @@ const SWITCH_CONTROLLED_TOOLS = ['data-insights', 'photo-privacy'];
 // 本地调试开关：强制全部显示（绕过所有单工具 / 版本过滤）
 // true = 本地强制全部显示（开发调试用，无需配置云端）；发布前请改回 false
 // 优先级最高：本地为 true 时直接全部放开（含开发版 / 体验版）
-const LOCAL_FORCE_SHOW_ALL = true;
+const LOCAL_FORCE_SHOW_ALL = false;
 
 // 当前存在的工具 id 列表（用于过滤最近使用/收藏中的无效项）
 const VALID_TOOL_IDS = TOOLS.map(t => t.id);

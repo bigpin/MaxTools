@@ -105,7 +105,7 @@
       </view>
 
       <!-- 股票卡片列表 -->
-      <view class="signals-container {{expandedDateGroups[item.date] ? 'show' : ''}}">
+      <view wx:if="{{expandedDateGroups[item.date]}}" class="signals-container">
         <view 
           wx:for="{{item.stocks}}"
           wx:for-item="stock"
